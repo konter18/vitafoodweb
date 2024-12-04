@@ -106,3 +106,8 @@ thead, td {
 .fondopastel{
     background-color: #ffe7bf;
 }
+
+#chart-container{
+    width: 100%;
+    height: 400px;
+}

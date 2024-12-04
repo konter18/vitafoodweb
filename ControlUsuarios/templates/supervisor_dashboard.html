@@ -7,7 +7,7 @@
     <title>Vista Supervisor</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/csspersonal.css' %}?v=1.1">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
 </head>
 <body class="d-flex flex-column vh-100">
 
@@ -53,65 +53,185 @@
                 alert.classList.remove('show');
                 alert.classList.add('fade');
                 setTimeout(() => {
-                    alert.remove(); // Elimina el elemento del DOM
-                },); // Espera a que termine la animación de desvanecimiento
+                    alert.remove();
+                }, 300); // Tiempo para la animación de desvanecimiento
             }
         }, 3000); // Cierra la alerta después de 3 segundos
     </script>
 {% endif %}
 
-
 <!-- Contenedor de contenido con margen -->
 <div class="container mt-4">
   {% if show_welcome %}
     <h1 class="ms-5">Bienvenido, {{ user.first_name }}!</h1>
+    <br>
+    <p>Información general de las detecciones del modelo</p>
   {% endif %}
   {% block content %}
-  <!-- Aquí se incluirá el contenido de las vistas específicas -->
+<!-- Filtros del gráfico -->
+<form id="filter-form" class="container mt-4">
+  <div class="row">
+    <!-- Filtro para el mes -->
+    <div class="col-md-4 col-sm-12 mb-3">
+      <label for="mes" class="form-label small">Mes:</label>
+      <select id="mes" name="mes" class="form-select">
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+    </div>
+
+    <!-- Filtro para el año -->
+    <div class="col-md-4 col-sm-12 mb-3">
+      <label for="anio" class="form-label small">Año:</label>
+      <select id="anio" name="anio" class="form-select">
+        <option value="2024">2024</option>
+        <!-- Agrega más años si es necesario -->
+      </select>
+    </div>
+
+    <!-- Botón para generar gráfico -->
+    <div class="col-md-4 col-sm-12 mb-3 d-flex mt-4">
+      <button type="button" id="generate-chart" class="btn btn-primary">Generar gráfico</button>
+    </div>
+  </div>
+</form>
+
+</form>
+    <!-- Contenedor del gráfico de barra-->
+    <div id="chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
+    <!-- Contenedor del gráfico de torta-->
+    <div id="pie-chart" class="mt-4" style="width: 100%; height: 400px;"></div>
+    <!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
+    <div id="pie-chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
   {% endblock %}
 </div>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-      const changePasswordForm = document.getElementById('changePasswordForm');
-      
-      if (changePasswordForm) {
-          changePasswordForm.addEventListener('submit', function (e) {
-              e.preventDefault();  // Evita que se envíe el formulario de forma tradicional
-  
-              const userId = this.getAttribute('data-user-id');  // Obtiene el ID del usuario
-              const url = `/change-password/${userId}/`;  // Ajusta esta URL según tu configuración
-              const formData = new FormData(this);
-              console.log('User ID:', userId);
-              console.log('Form Data:', formData);    
+    const generateButton = document.getElementById('generate-chart');
 
-              fetch(url, {
-                  method: 'POST',
-                  body: formData,
-                  headers: { 'X-Requested-With': 'XMLHttpRequest' }
-              })
-              .then(response => response.json())
-              .then(data => {
-                  console.log('Response data:', data);
-                  const responseMessage = document.getElementById('responseMessage');
-                  if (data.success) {
-                      // Muestra el mensaje de éxito
-                      responseMessage.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
-  
-                      // Redirige después de un breve tiempo (por ejemplo, 1 segundo)
-                      setTimeout(() => {
-                          window.location.href = data.redirect_url;  // Redirige al listado de operadores
-                      }, 1000);
-                  } else {
-                      // Muestra los errores en caso de fallo
-                      responseMessage.innerHTML = `<div class="alert alert-danger">Error: ${data.errors}</div>`;
-                  }
-              })
-              .catch(error => console.error('Error:', error));
-          });
-      }
-  });
-  </script>
+    // Obtener la fecha actual
+    const currentDate = new Date();
+    const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');  // Mes con 2 dígitos
+    const currentYear = currentDate.getFullYear();
+
+    // Llenar los campos de mes y año con los valores actuales
+    document.getElementById('mes').value = currentMonth;
+    document.getElementById('anio').value = currentYear;
+
+    // Manejar el clic del botón para generar el gráfico
+    generateButton.addEventListener('click', function () {
+        const mes = document.getElementById('mes').value;
+        const anio = document.getElementById('anio').value;
+
+        // Calcular las fechas de inicio y fin del mes seleccionado
+        const fecha_inicio = `${anio}-${mes}-01`;  // Primer día del mes
+        const fecha_fin = new Date(anio, mes, 0).toISOString().split('T')[0];  // Último día del mes
+
+        // Verificación de fechas en la consola
+        console.log(`Fecha inicio: ${fecha_inicio}, Fecha fin: ${fecha_fin}`);
+
+        // Construir la URL con los parámetros de fecha
+        let url = `/echarts/get_echart/?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}`;
+
+        // Hacer la solicitud fetch para obtener los datos del gráfico
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Datos recibidos:', data);
+
+                if (data.xAxis.length === 0) {
+                    console.error("No se encontraron datos para las fechas seleccionadas.");
+                }
+
+                // Inicializar ECharts para el gráfico de barras
+                const barChart = echarts.init(document.getElementById('chart-container'));
+
+                // Configuración del gráfico de barras
+                const barOptions = {
+                    title: { text: 'Cantidad de Errores por Tipo', left: 'center' },
+                    tooltip: { trigger: 'axis' },
+                    xAxis: {
+                        type: 'category',
+                        data: data.xAxis  // Los tipos de error en el eje X
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: [{
+                        name: 'Errores',
+                        type: 'bar',
+                        data: data.yAxis,  // Los datos de cantidad de errores
+                        color: '#007bff'
+                    }]
+                };
+
+                // Aplicar las opciones al gráfico de barras
+                barChart.setOption(barOptions);
+
+                // Inicializar ECharts para el gráfico circular
+                const pieChart = echarts.init(document.getElementById('pie-chart'));
+
+                // Datos para el gráfico circular
+                const pieData = data.xAxis.map((tipoError, index) => ({
+                    name: tipoError,
+                    value: data.yAxis[index]
+                }));
+
+                // Configuración del gráfico circular
+                const pieOptions = {
+                    title: {
+                        text: 'Distribución de Errores',
+                        subtext: 'Porcentaje de Errores',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{a} <br/>{b}: {c} ({d}%)'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left',
+                        data: data.xAxis  // Los tipos de error para la leyenda
+                    },
+                    series: [
+                        {
+                            name: 'Tipos de Error',
+                            type: 'pie',
+                            radius: '50%',
+                            data: pieData,
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                };
+
+                // Aplicar las opciones al gráfico circular
+                pieChart.setOption(pieOptions);
+            })
+            .catch(error => console.error('Error al cargar los datos del gráfico:', error));
+    });
+
+    // Generar el gráfico por defecto cuando se carga la página
+    generateButton.click();
+});
+</script>
 </body>
 </html>

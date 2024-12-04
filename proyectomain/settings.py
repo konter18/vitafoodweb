@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     #mis aplicaciones
     'ControlUsuarios.apps.ControlusuariosConfig',
+    'echarts',
 ]
 
 MIDDLEWARE = [

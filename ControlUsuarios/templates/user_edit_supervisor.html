@@ -34,10 +34,11 @@
         <button type="submit" class="btn btn-primary mt-4">Guardar cambios</button>
     </form>
 
-        <!-- Botón para abrir el modal de cambio de contraseña -->
-        <button type="button" class="btn btn-primary mt-4" data-bs-toggle="modal" data-bs-target="#changePasswordModal" data-user-id="{{ user.pk }}">
+    <!-- Botón para abrir el modal de cambio de contraseña -->
+    <button type="button" class="btn btn-primary mt-4" data-bs-toggle="modal" data-bs-target="#changePasswordModal" data-user-id="{{ user.pk }}">
         Cambiar Contraseña
-        </button>
+    </button>
+
     <!-- Modal de cambio de contraseña -->
     <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -64,4 +65,50 @@
             </div>
         </div>
     </div>
-    {% endblock %}
+
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', function (e) {
+                e.preventDefault();  // Evita que se envíe el formulario de forma tradicional
+    
+                const userId = this.getAttribute('data-user-id');  // Obtiene el ID del usuario
+                const url = `/change-password/${userId}/`;  // Ajusta esta URL según tu configuración
+                const formData = new FormData(this);
+                console.log('User ID:', userId);
+                console.log('Form Data:', formData);    
+  
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data);
+                    const responseMessage = document.getElementById('responseMessage');
+                    if (data.success) {
+                        // Muestra el mensaje de éxito
+                        responseMessage.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
+    
+                        // Redirige después de un breve tiempo (por ejemplo, 1 segundo)
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;  // Redirige al listado de operadores
+                        }, 1000);
+                    } else {
+                        // Muestra los errores en caso de fallo
+                        responseMessage.innerHTML = `<div class="alert alert-danger">Error: ${data.errors}</div>`;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        }
+    });
+    </script>
+{% endblock %}
+{% endblock %}

@@ -16,6 +16,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password,check_password
+from .models import ErroresModel
 
 def change_password(request, user_id):
     if request.method == 'POST':
@@ -242,3 +243,4 @@ def dashboard(request):
     else:
         # En caso de un rol no permitido, redirigir al inicio o logout
         return redirect('logout')
+    
