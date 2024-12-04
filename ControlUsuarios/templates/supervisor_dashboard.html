@@ -1,0 +1,117 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista Supervisor</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/csspersonal.css' %}?v=1.1">
+
+</head>
+<body class="d-flex flex-column vh-100">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg bg-pri">
+  <div class="container-fluid ms-5">
+    <a class="navbar-brand grosordeletra" href="{% url 'supervisor_dashboard' %}">Inicio</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item grosordeletra">
+          <a class="nav-link navbar-brand" href="{% url 'crear_usuario' %}">Crear Usuarios</a>
+        </li>
+        <li class="nav-item grosordeletra">
+          <a class="nav-link navbar-brand" href="{% url 'operator_list' %}">Editar Usuarios</a>
+        </li>
+        <li class="nav-item grosordeletra">
+            <form method="POST" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="nav-link btn btn-link navbar-brand" style="background:none;">
+                  Cerrar sesión
+                </button>
+              </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+{% if messages %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+
+    <script>
+        setTimeout(function() {
+            let alert = document.querySelector('.alert');
+            if (alert) {
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+                setTimeout(() => {
+                    alert.remove(); // Elimina el elemento del DOM
+                },); // Espera a que termine la animación de desvanecimiento
+            }
+        }, 3000); // Cierra la alerta después de 3 segundos
+    </script>
+{% endif %}
+
+
+<!-- Contenedor de contenido con margen -->
+<div class="container mt-4">
+  {% if show_welcome %}
+    <h1 class="ms-5">Bienvenido, {{ user.first_name }}!</h1>
+  {% endif %}
+  {% block content %}
+  <!-- Aquí se incluirá el contenido de las vistas específicas -->
+  {% endblock %}
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      const changePasswordForm = document.getElementById('changePasswordForm');
+      
+      if (changePasswordForm) {
+          changePasswordForm.addEventListener('submit', function (e) {
+              e.preventDefault();  // Evita que se envíe el formulario de forma tradicional
+  
+              const userId = this.getAttribute('data-user-id');  // Obtiene el ID del usuario
+              const url = `/change-password/${userId}/`;  // Ajusta esta URL según tu configuración
+              const formData = new FormData(this);
+              console.log('User ID:', userId);
+              console.log('Form Data:', formData);    
+
+              fetch(url, {
+                  method: 'POST',
+                  body: formData,
+                  headers: { 'X-Requested-With': 'XMLHttpRequest' }
+              })
+              .then(response => response.json())
+              .then(data => {
+                  console.log('Response data:', data);
+                  const responseMessage = document.getElementById('responseMessage');
+                  if (data.success) {
+                      // Muestra el mensaje de éxito
+                      responseMessage.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
+  
+                      // Redirige después de un breve tiempo (por ejemplo, 1 segundo)
+                      setTimeout(() => {
+                          window.location.href = data.redirect_url;  // Redirige al listado de operadores
+                      }, 1000);
+                  } else {
+                      // Muestra los errores en caso de fallo
+                      responseMessage.innerHTML = `<div class="alert alert-danger">Error: ${data.errors}</div>`;
+                  }
+              })
+              .catch(error => console.error('Error:', error));
+          });
+      }
+  });
+  </script>
+</body>
+</html>

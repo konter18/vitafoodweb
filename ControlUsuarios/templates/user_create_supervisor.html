@@ -1,0 +1,88 @@
+{% extends 'supervisor_dashboard.html' %}
+
+{% block content %}
+  <div class="container mt-5">
+    <h2>Crear Usuario</h2>
+    <form method="post">
+      {% csrf_token %}
+      
+      <!-- RUT -->
+      <div class="form-group">
+        <label class="form-label" for="id_rut">RUT</label>
+        {{ form.rut }}
+        {% if form.rut.errors %}
+          <div class="alert alert-danger">
+            {% for error in form.rut.errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      
+      <!-- Primer Nombre -->
+      <div class="form-group">
+        <label class="form-label" for="id_first_name">Primer Nombre</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}
+          <div class="alert alert-danger">
+            {% for error in form.first_name.errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Apellido -->
+      <div class="form-group">
+        <label class="form-label" for="id_last_name">Apellido</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}
+          <div class="alert alert-danger">
+            {% for error in form.last_name.errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Contraseña -->
+      <div class="form-group">
+        <label class="form-label" for="id_password">Contraseña</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="alert alert-danger">
+            {% for error in form.password.errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+    <!-- Campo Planta -->
+    <div class="form-group">
+      <label class="form-label" for="id_planta_fk">Planta</label>
+        <select name="planta_fk" id="id_planta_fk" class="form-control">
+          <option value="">Seleccione una planta</option>
+          {% for planta in form.planta_fk.field.queryset %}
+            <option value="{{ planta.id_planta }}" {% if planta.id_planta|stringformat:"s" == form.planta_fk.value|stringformat:"s" %}selected{% endif %}>{{ planta.nombre_planta }}</option>
+          {% endfor %}
+        </select>
+        {% if form.planta_fk.errors %}
+          <div class="alert alert-danger">
+            {% for error in form.planta_fk.errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+      {% endif %}
+    </div>
+
+    
+
+
+      <!-- Botón de Crear Usuario -->
+      <div>
+        <button class="btn mt-4 btn-primary" type="submit">Crear Usuario</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

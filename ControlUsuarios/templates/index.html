@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/csspersonal.css' %}?v=1.1">
+</head>
+<body class="d-flex align-items-center justify-content-center vh-100 fondocafe">
+
+    <div class="container-sm p-4 shadow-lg rounded fondopastel" style="max-width: 400px;">
+        {% if messages %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    
+        <script>
+            setTimeout(function() {
+                let alert = document.querySelector('.alert');
+                if (alert) {
+                    alert.classList.remove('show');
+                    alert.classList.add('fade');
+                    setTimeout(() => {
+                        alert.remove(); 
+                    },); 
+                }
+            }, 2000); 
+        </script>
+    {% endif %}
+        <h1 class="text-center mb-4">Iniciar sesión</h1>
+        <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="rut">RUT:</label>
+                <input class="form-control" type="text" id="rut" name="rut" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password">Contraseña:</label>
+                <input class="form-control" type="password" id="password" name="password" required>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Iniciar sesión</button>
+        </form>
+    </div>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>
+

@@ -1,0 +1,67 @@
+{% extends 'supervisor_dashboard.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Editar Usuario: {{ user.username }}</h1>
+    <form method="POST" id="mainEditForm">
+        {% csrf_token %}
+        
+        <!-- RUT -->
+        <div class="form-group">
+            <label for="{{ form.rut.id_for_label }}">RUT</label>
+            {{ form.rut }}
+        </div>
+
+        <!-- Primer Nombre -->
+        <div class="form-group">
+            <label for="{{ form.first_name.id_for_label }}">Primer Nombre</label>
+            {{ form.first_name }}
+        </div>
+
+        <!-- Apellido -->
+        <div class="form-group">
+            <label for="{{ form.last_name.id_for_label }}">Apellido</label>
+            {{ form.last_name }}
+        </div>
+
+        <!-- Planta -->
+        <div class="form-group">
+            <label for="{{ form.planta_fk.id_for_label }}">Ubicación de Planta</label>
+            {{ form.planta_fk }}
+        </div>
+
+        <!-- Botón de guardar cambios -->
+        <button type="submit" class="btn btn-primary mt-4">Guardar cambios</button>
+    </form>
+
+        <!-- Botón para abrir el modal de cambio de contraseña -->
+        <button type="button" class="btn btn-primary mt-4" data-bs-toggle="modal" data-bs-target="#changePasswordModal" data-user-id="{{ user.pk }}">
+        Cambiar Contraseña
+        </button>
+    <!-- Modal de cambio de contraseña -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changePasswordModalLabel">Cambiar Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePasswordForm" method="POST" data-user-id="{{ user.id }}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_new_password1" class="form-label">Nueva contraseña</label>
+                            <input type="password" class="form-control" id="id_new_password1" name="new_password1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_new_password2" class="form-label">Confirmar nueva contraseña</label>
+                            <input type="password" class="form-control" id="id_new_password2" name="new_password2" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+                    </form>                    
+                    <div id="responseMessage" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
