@@ -66,6 +66,8 @@
     <h1 class="ms-5">Bienvenido, {{ user.first_name }}!</h1>
     <br>
     <p>Información general de las detecciones del modelo</p>
+    <h1>Plantillas: {{ plantas }}</h1>
+
   {% endif %}
   {% block content %}
 <!-- Filtros del gráfico -->
@@ -102,19 +104,27 @@
     <!-- Botón para generar gráfico -->
     <div class="col-md-4 col-sm-12 mb-3 d-flex mt-4">
       <button type="button" id="generate-chart" class="btn btn-primary">Generar gráfico</button>
+      <!-- Botón para navegar al gráfico de rendimiento -->
+      <a href="#pie-chart-container" class="btn btn-primary ms-2">Ir al gráfico de rendimiento</a>
     </div>
   </div>
 </form>
 
-</form>
-    <!-- Contenedor del gráfico de barra-->
-    <div id="chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
-    <!-- Contenedor del gráfico de torta-->
-    <div id="pie-chart" class="mt-4" style="width: 100%; height: 400px;"></div>
-    <!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
-    <div id="pie-chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
+<!-- Contenedor del gráfico de barra-->
+<div id="chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
+
+<!-- Contenedor del gráfico de torta-->
+<div id="pie-chart" class="mt-4" style="width: 100%; height: 400px;"></div>
+
+<!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
+<div id="pie-chart-container" class="mt-4" style="width: 100%; height: 700px;"></div>
+
   {% endblock %}
 </div>
+<!-- Botón para subir al principio de la página -->
+<button id="scrollToTop" class="btn btn-primary position-fixed" style="bottom: 20px; right: 20px; display: none;">
+  Subir
+</button>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 
@@ -131,7 +141,7 @@
     document.getElementById('mes').value = currentMonth;
     document.getElementById('anio').value = currentYear;
 
-    // Manejar el clic del botón para generar el gráfico
+    // Manejar el clic del botón para generar los gráficos
     generateButton.addEventListener('click', function () {
         const mes = document.getElementById('mes').value;
         const anio = document.getElementById('anio').value;
@@ -146,7 +156,7 @@
         // Construir la URL con los parámetros de fecha
         let url = `/echarts/get_echart/?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}`;
 
-        // Hacer la solicitud fetch para obtener los datos del gráfico
+        // Hacer la solicitud fetch para obtener los datos del gráfico de barras
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -181,7 +191,7 @@
                 // Aplicar las opciones al gráfico de barras
                 barChart.setOption(barOptions);
 
-                // Inicializar ECharts para el gráfico circular
+                // Inicializar ECharts para el gráfico circular (por distribución de errores)
                 const pieChart = echarts.init(document.getElementById('pie-chart'));
 
                 // Datos para el gráfico circular
@@ -227,11 +237,69 @@
                 pieChart.setOption(pieOptions);
             })
             .catch(error => console.error('Error al cargar los datos del gráfico:', error));
+
+        // Obtener los datos para el gráfico circular (rendimiento general) del mes actual
+        fetch('/echarts/obtener_rendimiento_general/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Datos de rendimiento general:', data);
+
+                // Inicializar ECharts para el gráfico de rendimiento general
+                const pieChartRendimiento = echarts.init(document.getElementById('pie-chart-container'));
+
+                // Configuración del gráfico circular (rendimiento general)
+                const pieOptionsRendimiento = {
+                    title: {
+                        text: 'Rendimiento de Detección',
+                        subtext: 'Mes Actual',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{a} <br/>{b}: {c} ({d}%)'
+                    },
+                    series: [
+                        {
+                            name: 'Rendimiento',
+                            type: 'pie',
+                            radius: '50%',
+                            data: [
+                                { value: data.correcta, name: 'Correcta' },
+                                { value: data.perdida, name: 'Perdida' }
+                            ]
+                        }
+                    ]
+                };
+
+                // Aplicar las opciones al gráfico de rendimiento general
+                pieChartRendimiento.setOption(pieOptionsRendimiento);
+            })
+            .catch(error => {
+                console.error('Error al cargar los datos del gráfico de rendimiento general:', error);
+            });
     });
 
-    // Generar el gráfico por defecto cuando se carga la página
+    // Generar los gráficos por defecto cuando se carga la página
     generateButton.click();
 });
+  // Mostrar el botón cuando se hace scroll hacia abajo
+  window.addEventListener('scroll', function () {
+    const scrollToTopBtn = document.getElementById('scrollToTop');
+    if (window.scrollY > 200) { // Mostrar cuando el usuario haya hecho scroll de al menos 200px
+      scrollToTopBtn.style.display = 'block';
+    } else {
+      scrollToTopBtn.style.display = 'none';
+    }
+  });
+
+  // Manejar el clic en el botón para subir al principio de la página
+  document.getElementById('scrollToTop').addEventListener('click', function () {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth' // Animación suave al hacer scroll
+    });
+  });
 </script>
+
 </body>
 </html>

@@ -93,3 +93,4 @@ class AdminPasswordChangeForm(forms.Form):
             raise ValidationError("La contraseña no puede ser completamente numérica.")
 
         return cleaned_data
+    

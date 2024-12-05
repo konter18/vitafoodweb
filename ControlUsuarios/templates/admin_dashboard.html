@@ -7,6 +7,7 @@
     <title>Vista Admin</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/csspersonal.css' %}?v=1.1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
 </head>
 <body class="d-flex flex-column vh-100">
 
@@ -28,7 +29,7 @@
         <li class="nav-item">
             <form method="POST" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button type="submit" class="nav-link btn btn-link navbar-brand" style="background:none;">
+                <button type="submit" class="nav-link btn btn-link navbar-brand grosordeletra" style="background:none;">
                   Cerrar sesión
                 </button>
               </form>
@@ -45,17 +46,236 @@
         {% endfor %}
     </div>
 {% endif %}
-
 <!-- Contenedor de contenido con margen -->
 <div class="container mt-4">
   {% if show_welcome %}
     <h1 class="ms-5">Bienvenido, {{ user.first_name }}!</h1>
+    <br>
+    <p>Información general de las detecciones del modelo</p>
   {% endif %}
-  {% block content %}
-  <!-- Aquí se incluirá el contenido de las vistas específicas -->
-  {% endblock %}
+  <!-- Filtros del gráfico -->
+  <form id="filter-form" method="GET" class="container mt-4">
+    <div class="row">
+      <!-- Filtro para la planta -->
+      <div class="col-md-4 col-sm-12 mb-3">
+        <label for="planta" class="form-label small">Planta:</label>
+          <select id="planta" name="planta" class="form-select">
+            {% if plantas %}
+                {% for planta in plantas %}
+                    <option value="{{ planta.id_planta }}" {% if planta == planta_default %}selected{% endif %}>
+                        {{ planta.nombre_planta }}
+                    </option>
+                {% endfor %}
+            {% else %}
+                <option disabled>No hay plantas disponibles</option>
+            {% endif %}
+        </select>
+      </div>
+
+      <!-- Filtro para el mes -->
+      <div class="col-md-4 col-sm-12 mb-3">
+        <label for="mes" class="form-label small">Mes:</label>
+        <select id="mes" name="mes" class="form-select">
+          <option value="01">Enero</option>
+          <option value="02">Febrero</option>
+          <option value="03">Marzo</option>
+          <option value="04">Abril</option>
+          <option value="05">Mayo</option>
+          <option value="06">Junio</option>
+          <option value="07">Julio</option>
+          <option value="08">Agosto</option>
+          <option value="09">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+
+      <!-- Filtro para el año -->
+      <div class="col-md-4 col-sm-12 mb-3">
+        <label for="anio" class="form-label small">Año:</label>
+        <select id="anio" name="anio" class="form-select">
+          <option value="2024">2024</option>
+          <!-- Agrega más años si es necesario -->
+        </select>
+      </div>
+
+      <!-- Botón para generar gráfico -->
+      <div class="col-md-4 col-sm-12 mb-3 d-flex mt-4">
+        <button type="submit" id="generate-chart" class="btn btn-primary">Generar gráfico</button>
+        <!-- Botón para navegar al gráfico de rendimiento -->
+        <a href="#pie-chart-container" class="btn btn-primary ms-2">Ir al gráfico de rendimiento</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Contenedor del gráfico de barra-->
+  <div id="chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
+
+  <!-- Contenedor del gráfico de torta-->
+  <div id="pie-chart" class="mt-4" style="width: 100%; height: 400px;"></div>
+
+  <!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
+  <div id="pie-chart-container" class="mt-4" style="width: 100%; height: 700px;"></div>
+
 </div>
 
+<!-- Botón para subir al principio de la página -->
+<button id="scrollToTop" class="btn btn-primary position-fixed" style="bottom: 20px; right: 20px; display: none;">
+  Subir
+</button>
+
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Primero, obtenemos el valor de la planta seleccionada
+    const planta = document.getElementById('planta').value; // Obtener el valor de la planta seleccionada
+    console.log('Valor planta al cargar la página:', planta); // Para verificar el valor de planta
+  
+    // URL para obtener los datos del gráfico de rendimiento general
+    let urlRendimiento = `/echarts/get_admin_chart_rendimiento/?planta=${planta}`;
+  
+    // Hacer la solicitud fetch para el gráfico de rendimiento general
+    fetch(urlRendimiento)
+      .then(response => response.json())
+      .then(data => {
+        console.log('Datos de rendimiento general:', data);
+  
+        // Inicializar ECharts para el gráfico de rendimiento general
+        const pieChartRendimiento = echarts.init(document.getElementById('pie-chart-container'));
+  
+        // Configuración del gráfico circular (rendimiento general)
+        const pieOptionsRendimiento = {
+          title: {
+            text: 'Rendimiento de Detección',
+            subtext: 'Mes Actual',
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
+          },
+          series: [
+            {
+              name: 'Rendimiento',
+              type: 'pie',
+              radius: '50%',
+              data: [
+                { value: data.correcta, name: 'Correcta' },
+                { value: data.perdida, name: 'Perdida' }
+              ]
+            }
+          ]
+        };
+  
+        // Aplicar las opciones al gráfico de rendimiento general
+        pieChartRendimiento.setOption(pieOptionsRendimiento);
+      })
+      .catch(error => {
+        console.error('Error al cargar los datos del gráfico de rendimiento general:', error);
+      });
+  
+    // Luego, obtenemos los datos para los gráficos de barras y circular de distribución de errores
+    const mes = document.getElementById('mes').value;
+    const anio = document.getElementById('anio').value;
+    
+    // Calcular las fechas de inicio y fin del mes seleccionado
+    const fecha_inicio = `${anio}-${mes}-01`;  // Primer día del mes
+    const fecha_fin = new Date(anio, mes, 0).toISOString().split('T')[0];  // Último día del mes
+  
+    // Verificación de fechas en la consola
+    console.log(`Fecha inicio: ${fecha_inicio}, Fecha fin: ${fecha_fin}, Planta: ${planta}`);
+  
+    // Construir la URL con los parámetros de fecha y planta para el gráfico de barras
+    let urlBarras = `/echarts/get_admin_chart_barras/?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}&planta=${planta}`;
+  
+    // Hacer la solicitud fetch para obtener los datos del gráfico de barras
+    fetch(urlBarras)
+      .then(response => response.json())
+      .then(data => {
+        console.log('Datos recibidos para barras:', data);
+  
+        if (data.xAxis.length === 0) {
+          console.error("No se encontraron datos para las fechas seleccionadas.");
+        }
+  
+        // Inicializar ECharts para el gráfico de barras
+        const barChart = echarts.init(document.getElementById('chart-container'));
+  
+        // Configuración del gráfico de barras
+        const barOptions = {
+          title: { text: 'Cantidad de Errores por Tipo', left: 'center' },
+          tooltip: { trigger: 'axis' },
+          xAxis: {
+            type: 'category',
+            data: data.xAxis  // Los tipos de error en el eje X
+          },
+          yAxis: {
+            type: 'value'
+          },
+          series: [{
+            name: 'Errores',
+            type: 'bar',
+            data: data.yAxis,  // Los datos de cantidad de errores
+            color: '#007bff'
+          }]
+        };
+  
+        // Aplicar las opciones al gráfico de barras
+        barChart.setOption(barOptions);
+  
+        // Inicializar ECharts para el gráfico circular (por distribución de errores)
+        const pieChart = echarts.init(document.getElementById('pie-chart'));
+  
+        // Datos para el gráfico circular
+        const pieData = data.xAxis.map((tipoError, index) => ({
+          name: tipoError,
+          value: data.yAxis[index]
+        }));
+  
+        // Configuración del gráfico circular
+        const pieOptions = {
+          title: {
+            text: 'Distribución de Errores',
+            subtext: 'Porcentaje de Errores',
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
+          },
+          legend: {
+            orient: 'vertical',
+            left: 'left',
+            data: data.xAxis  // Los tipos de error para la leyenda
+          },
+          series: [
+            {
+              name: 'Tipos de Error',
+              type: 'pie',
+              radius: '50%',
+              data: pieData,
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+              }
+            }
+          ]
+        };
+  
+        // Aplicar las opciones al gráfico circular
+        pieChart.setOption(pieOptions);
+      })
+      .catch(error => console.error('Error al cargar los datos del gráfico:', error));
+  });
+  
+  
+</script>
+
 </body>
+
 </html>
