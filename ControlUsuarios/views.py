@@ -212,7 +212,7 @@ class OperatorListView(UserPassesTestMixin, View):
 
 def filtro_planta(request):
     plantas = PlantaModel.objects.all()  # Obtener todas las plantas
-    planta_default = plantas.first() if plantas else None  # Seleccionar la primera planta por defecto
+    planta_default = plantas.first().id_planta if plantas else None  # Seleccionar el id de la primera planta por defecto
 
     # Verificar en la consola si plantas tiene objetos
     print(f"Plantas en la vista: {plantas}")  # Esto debe mostrar un queryset con plantas

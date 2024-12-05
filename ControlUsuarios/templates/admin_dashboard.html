@@ -60,15 +60,9 @@
       <div class="col-md-4 col-sm-12 mb-3">
         <label for="planta" class="form-label small">Planta:</label>
           <select id="planta" name="planta" class="form-select">
-            {% if plantas %}
-                {% for planta in plantas %}
-                    <option value="{{ planta.id_planta }}" {% if planta == planta_default %}selected{% endif %}>
-                        {{ planta.nombre_planta }}
-                    </option>
-                {% endfor %}
-            {% else %}
-                <option disabled>No hay plantas disponibles</option>
-            {% endif %}
+            {% for planta in plantas %}
+              <option value="{{ planta.id_planta }}" {% if planta.id_planta == planta_default %}selected{% endif %}>{{ planta.nombre_planta }}</option>
+            {% endfor %}
         </select>
       </div>
 
@@ -99,10 +93,8 @@
           <!-- Agrega más años si es necesario -->
         </select>
       </div>
-
-      <!-- Botón para generar gráfico -->
+      
       <div class="col-md-4 col-sm-12 mb-3 d-flex mt-4">
-        <button type="submit" id="generate-chart" class="btn btn-primary">Generar gráfico</button>
         <!-- Botón para navegar al gráfico de rendimiento -->
         <a href="#pie-chart-container" class="btn btn-primary ms-2">Ir al gráfico de rendimiento</a>
       </div>
@@ -129,152 +121,117 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // Primero, obtenemos el valor de la planta seleccionada
-    const planta = document.getElementById('planta').value; // Obtener el valor de la planta seleccionada
-    console.log('Valor planta al cargar la página:', planta); // Para verificar el valor de planta
-  
-    // URL para obtener los datos del gráfico de rendimiento general
-    let urlRendimiento = `/echarts/get_admin_chart_rendimiento/?planta=${planta}`;
-  
-    // Hacer la solicitud fetch para el gráfico de rendimiento general
-    fetch(urlRendimiento)
-      .then(response => response.json())
-      .then(data => {
-        console.log('Datos de rendimiento general:', data);
-  
-        // Inicializar ECharts para el gráfico de rendimiento general
-        const pieChartRendimiento = echarts.init(document.getElementById('pie-chart-container'));
-  
-        // Configuración del gráfico circular (rendimiento general)
-        const pieOptionsRendimiento = {
-          title: {
-            text: 'Rendimiento de Detección',
-            subtext: 'Mes Actual',
-            left: 'center'
-          },
-          tooltip: {
-            trigger: 'item',
-            formatter: '{a} <br/>{b}: {c} ({d}%)'
-          },
-          series: [
-            {
-              name: 'Rendimiento',
-              type: 'pie',
-              radius: '50%',
-              data: [
-                { value: data.correcta, name: 'Correcta' },
-                { value: data.perdida, name: 'Perdida' }
-              ]
-            }
-          ]
-        };
-  
-        // Aplicar las opciones al gráfico de rendimiento general
-        pieChartRendimiento.setOption(pieOptionsRendimiento);
-      })
-      .catch(error => {
-        console.error('Error al cargar los datos del gráfico de rendimiento general:', error);
-      });
-  
-    // Luego, obtenemos los datos para los gráficos de barras y circular de distribución de errores
-    const mes = document.getElementById('mes').value;
-    const anio = document.getElementById('anio').value;
-    
-    // Calcular las fechas de inicio y fin del mes seleccionado
-    const fecha_inicio = `${anio}-${mes}-01`;  // Primer día del mes
-    const fecha_fin = new Date(anio, mes, 0).toISOString().split('T')[0];  // Último día del mes
-  
-    // Verificación de fechas en la consola
-    console.log(`Fecha inicio: ${fecha_inicio}, Fecha fin: ${fecha_fin}, Planta: ${planta}`);
-  
-    // Construir la URL con los parámetros de fecha y planta para el gráfico de barras
-    let urlBarras = `/echarts/get_admin_chart_barras/?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}&planta=${planta}`;
-  
-    // Hacer la solicitud fetch para obtener los datos del gráfico de barras
-    fetch(urlBarras)
-      .then(response => response.json())
-      .then(data => {
-        console.log('Datos recibidos para barras:', data);
-  
-        if (data.xAxis.length === 0) {
-          console.error("No se encontraron datos para las fechas seleccionadas.");
-        }
-  
-        // Inicializar ECharts para el gráfico de barras
-        const barChart = echarts.init(document.getElementById('chart-container'));
-  
-        // Configuración del gráfico de barras
-        const barOptions = {
-          title: { text: 'Cantidad de Errores por Tipo', left: 'center' },
-          tooltip: { trigger: 'axis' },
-          xAxis: {
-            type: 'category',
-            data: data.xAxis  // Los tipos de error en el eje X
-          },
-          yAxis: {
-            type: 'value'
-          },
-          series: [{
-            name: 'Errores',
-            type: 'bar',
-            data: data.yAxis,  // Los datos de cantidad de errores
-            color: '#007bff'
-          }]
-        };
-  
-        // Aplicar las opciones al gráfico de barras
-        barChart.setOption(barOptions);
-  
-        // Inicializar ECharts para el gráfico circular (por distribución de errores)
-        const pieChart = echarts.init(document.getElementById('pie-chart'));
-  
-        // Datos para el gráfico circular
-        const pieData = data.xAxis.map((tipoError, index) => ({
-          name: tipoError,
-          value: data.yAxis[index]
-        }));
-  
-        // Configuración del gráfico circular
-        const pieOptions = {
-          title: {
-            text: 'Distribución de Errores',
-            subtext: 'Porcentaje de Errores',
-            left: 'center'
-          },
-          tooltip: {
-            trigger: 'item',
-            formatter: '{a} <br/>{b}: {c} ({d}%)'
-          },
-          legend: {
-            orient: 'vertical',
-            left: 'left',
-            data: data.xAxis  // Los tipos de error para la leyenda
-          },
-          series: [
-            {
-              name: 'Tipos de Error',
-              type: 'pie',
-              radius: '50%',
-              data: pieData,
-              emphasis: {
-                itemStyle: {
-                  shadowBlur: 10,
-                  shadowOffsetX: 0,
-                  shadowColor: 'rgba(0, 0, 0, 0.5)'
-                }
+    const plantaSelect = document.getElementById('planta');
+    const mesSelect = document.getElementById('mes');
+    const anioSelect = document.getElementById('anio');
+
+    // Función para actualizar los gráficos
+    function actualizarGraficos() {
+      const planta = plantaSelect.value;
+      const mes = mesSelect.value;
+      const anio = anioSelect.value;
+
+      // URL para obtener los datos del gráfico de rendimiento general
+      let urlRendimiento = `/echarts/get_admin_chart_rendimiento/?planta=${planta}`;
+
+      fetch(urlRendimiento)
+        .then(response => response.json())
+        .then(data => {
+          const pieChartRendimiento = echarts.init(document.getElementById('pie-chart-container'));
+          const pieOptionsRendimiento = {
+            title: {
+              text: 'Rendimiento de Detección',
+              subtext: 'Mes',
+              left: 'center'
+            },
+            tooltip: {
+              trigger: 'item',
+              formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            series: [
+              {
+                name: 'Rendimiento',
+                type: 'pie',
+                radius: '50%',
+                data: [
+                  { value: data.correcta, name: 'Correcta' },
+                  { value: data.perdida, name: 'Errores' }
+                ]
               }
-            }
-          ]
-        };
-  
-        // Aplicar las opciones al gráfico circular
-        pieChart.setOption(pieOptions);
-      })
-      .catch(error => console.error('Error al cargar los datos del gráfico:', error));
+            ]
+          };
+          pieChartRendimiento.setOption(pieOptionsRendimiento);
+        })
+        .catch(error => console.error('Error al cargar los datos del gráfico de rendimiento general:', error));
+
+      const fecha_inicio = `${anio}-${mes}-01`;
+      const fecha_fin = new Date(anio, mes, 0).toISOString().split('T')[0];
+
+      let urlBarras = `/echarts/get_admin_chart_barras/?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}&planta=${planta}`;
+
+      fetch(urlBarras)
+        .then(response => response.json())
+        .then(data => {
+          const barChart = echarts.init(document.getElementById('chart-container'));
+          const barOptions = {
+            title: { text: 'Cantidad de Errores por Tipo', left: 'center' },
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: data.xAxis },
+            yAxis: { type: 'value' },
+            series: [{
+              name: 'Errores',
+              type: 'bar',
+              data: data.yAxis
+            }]
+          };
+          barChart.setOption(barOptions);
+
+          const pieChart = echarts.init(document.getElementById('pie-chart'));
+          const pieData = data.xAxis.map((tipoError, index) => ({
+            name: tipoError,
+            value: data.yAxis[index]
+          }));
+
+          const pieOptions = {
+            title: {
+              text: 'Distribución de Errores',
+              subtext: 'Porcentaje de Errores',
+              left: 'center'
+            },
+            tooltip: {
+              trigger: 'item',
+              formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+              orient: 'vertical',
+              left: 'left',
+              data: data.xAxis
+            },
+            series: [
+              {
+                name: 'Tipos de Error',
+                type: 'pie',
+                radius: '50%',
+                data: pieData
+              }
+            ]
+          };
+          pieChart.setOption(pieOptions);
+        })
+        .catch(error => console.error('Error al cargar los datos del gráfico:', error));
+    }
+
+    // Llamar a la función para cargar los gráficos al cargar la página
+    actualizarGraficos();
+
+    // Agregar eventos para actualizar los gráficos cuando cambian los filtros
+    plantaSelect.addEventListener('change', actualizarGraficos);
+    mesSelect.addEventListener('change', actualizarGraficos);
+    anioSelect.addEventListener('change', actualizarGraficos);
   });
-  
-  
 </script>
+
+
 
 </body>
 
