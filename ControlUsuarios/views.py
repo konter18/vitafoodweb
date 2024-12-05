@@ -210,15 +210,16 @@ class OperatorListView(UserPassesTestMixin, View):
             'rut_filter': rut_filter,  # Para mantener el filtro de búsqueda
         })
 
-def filtro_planta(request):
-    plantas = PlantaModel.objects.all()  # Obtener todas las plantas
-    planta_default = plantas.first().id_planta if plantas else None  # Seleccionar el id de la primera planta por defecto
+def plantas_dashboard(request):
+    # Obtén las plantas de la base de datos
+    plantas = PlantaModel.objects.all()  # Asegúrate de usar el modelo correcto
+    planta_default = request.GET.get('planta') or (plantas.first().id_planta if plantas.exists() else None)
 
-    # Verificar en la consola si plantas tiene objetos
-    print(f"Plantas en la vista: {plantas}")  # Esto debe mostrar un queryset con plantas
-
-    return render(request, 'admin_dashboard.html', {'plantas': plantas, 'planta_default': planta_default})
-
+    context = {
+        'plantas': plantas,
+        'planta_default': planta_default,
+    }
+    return render(request, 'plantas_dashboard.html', context)
 
 def logout_view(request):
     # Cierra la sesión del usuario
@@ -246,15 +247,14 @@ def eliminar_usuario(request, pk):
 def dashboard(request):
     # Verificar a qué tipo de dashboard redirigir
     if is_admin(request.user):
-        # Obtener todas las plantas
         plantas = PlantaModel.objects.all()
-        planta_default = plantas.first() if plantas else None  # Seleccionar la primera planta por defecto
+        planta_default = plantas.first().id_planta if plantas else None
 
-        # Verificación de si plantas contiene datos
-        print(f"Plantas en la vista: {plantas}")
-
-        # Pasar las plantas y la planta por defecto al contexto
-        return render(request, 'admin_dashboard.html', {'show_welcome': True, 'plantas': plantas, 'planta_default': planta_default})
+        return render(request, 'admin_dashboard.html', {
+            'show_welcome': True,
+            'plantas': plantas,
+            'planta_default': planta_default
+        })
 
     elif is_supervisor(request.user):
         return render(request, 'supervisor_dashboard.html', {'show_welcome': True})
