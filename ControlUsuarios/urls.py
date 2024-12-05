@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import login_view,dashboard,UserCreateView,UserEditView,OperatorListView,eliminar_usuario,change_password,logout_view
+from .views import login_view,dashboard,UserCreateView,UserEditView,OperatorListView,eliminar_usuario,change_password,logout_view,plantas_dashboard
 from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('logout/', logout_view, name='logout'),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('operator_list',OperatorListView.as_view(),name='operator_list'),
     path('admin_dashboard/', dashboard, name='admin_dashboard'),
     path('change-password/<int:user_id>/', change_password, name='change_password'),
+    path('plantas_dashboard/', plantas_dashboard, name='plantas_dashboard'),
 ]

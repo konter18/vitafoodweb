@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect,get_object_or_404
-from ControlUsuarios.models import CustomUser
+from ControlUsuarios.models import CustomUser,PlantaModel
 from django.contrib.auth import login, authenticate, logout,get_user_model
 from .forms import CustomAuthenticationForm, CustomUserSupervisorView
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -98,7 +98,7 @@ def redirect_to_dashboard(request):
         logout(request)  # Cierra la sesión si el rol no es válido
         messages.error(request, 'No tienes un rol válido asignado.')
         return redirect('login')
-
+    
 # Vista para crear usuarios solo accesible para supervisores
 class UserCreateView(View):
     def get(self, request):
@@ -210,6 +210,16 @@ class OperatorListView(UserPassesTestMixin, View):
             'rut_filter': rut_filter,  # Para mantener el filtro de búsqueda
         })
 
+def plantas_dashboard(request):
+    # Obtén las plantas de la base de datos
+    plantas = PlantaModel.objects.all()  # Asegúrate de usar el modelo correcto
+    planta_default = request.GET.get('planta') or (plantas.first().id_planta if plantas.exists() else None)
+
+    context = {
+        'plantas': plantas,
+        'planta_default': planta_default,
+    }
+    return render(request, 'plantas_dashboard.html', context)
 
 def logout_view(request):
     # Cierra la sesión del usuario
@@ -237,10 +247,18 @@ def eliminar_usuario(request, pk):
 def dashboard(request):
     # Verificar a qué tipo de dashboard redirigir
     if is_admin(request.user):
-        return render(request, 'admin_dashboard.html', {'show_welcome': True})
+        plantas = PlantaModel.objects.all()
+        planta_default = plantas.first().id_planta if plantas else None
+
+        return render(request, 'admin_dashboard.html', {
+            'show_welcome': True,
+            'plantas': plantas,
+            'planta_default': planta_default
+        })
+
     elif is_supervisor(request.user):
         return render(request, 'supervisor_dashboard.html', {'show_welcome': True})
     else:
         # En caso de un rol no permitido, redirigir al inicio o logout
         return redirect('logout')
-    
+

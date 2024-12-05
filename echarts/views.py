@@ -1,8 +1,9 @@
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from datetime import datetime
+from django.shortcuts import render
 from django.http import JsonResponse
-from ControlUsuarios.models import ErroresModel,RegistroAciertos
+from ControlUsuarios.models import ErroresModel,RegistroAciertos,PlantaModel
 
 def get_chart(request):
     # Obtener los parámetros de la URL
@@ -76,3 +77,150 @@ def obtener_rendimiento_general(request):
     }
 
     return JsonResponse(data)
+
+
+def get_supervisor_chart(request):
+    # Obtener los parámetros de la URL
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    planta = request.GET.get('planta')
+
+    # Verificar que los parámetros están presentes
+    if not fecha_inicio or not fecha_fin or not planta:
+        return JsonResponse({"error": "Los parámetros 'fecha_inicio', 'fecha_fin' y 'planta' son requeridos."}, status=400)
+
+    try:
+        # Convertir las fechas a objetos datetime
+        fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+        fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d')
+    except ValueError:
+        return JsonResponse({"error": "Formato de fecha inválido. Use 'YYYY-MM-DD'."}, status=400)
+
+    # Filtrar los errores por fechas y planta
+    query = ErroresModel.objects.filter(fecha__range=[fecha_inicio, fecha_fin], planta=planta)
+
+    # Truncar las fechas a nivel de día para evitar problemas con horas
+    query = query.annotate(fecha_truncada=TruncDate('fecha'))
+
+    # Agrupar por tipo de error y contar registros
+    data = (
+        query.values('tipo_error')
+        .annotate(total=Count('id_error'))
+        .order_by('tipo_error')
+    )
+
+    # Preparar los datos para el gráfico
+    chart = {
+        "xAxis": [item['tipo_error'] for item in data],
+        "yAxis": [item['total'] for item in data],
+    }
+
+    return JsonResponse(chart)
+#···················································································································#
+#graficos de vista administrador
+def get_admin_chart_barras(request):
+    # Obtener los parámetros de la URL
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    planta = request.GET.get('planta')  # Filtrar por planta
+
+    # Verificar que los parámetros están presentes
+    if not fecha_inicio or not fecha_fin or not planta:
+        return JsonResponse({"error": "Los parámetros 'fecha_inicio', 'fecha_fin' y 'planta' son requeridos."}, status=400)
+
+    try:
+        # Convertir las fechas a objetos datetime
+        fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+        fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d')
+    except ValueError:
+        return JsonResponse({"error": "Formato de fecha inválido. Use 'YYYY-MM-DD'."}, status=400)
+
+    # Filtrar los errores por fechas y planta
+    query = ErroresModel.objects.filter(fecha__range=[fecha_inicio, fecha_fin], planta_fk=planta)
+
+    # Truncar las fechas a nivel de día para evitar problemas con horas
+    query = query.annotate(fecha_truncada=TruncDate('fecha'))
+
+    # Agrupar por tipo de error y contar registros
+    data = (
+        query.values('tipo_error')
+        .annotate(total=Count('id_error'))
+        .order_by('tipo_error')
+    )
+
+    # Preparar los datos para el gráfico
+    chart = {
+        "xAxis": [item['tipo_error'] for item in data],
+        "yAxis": [item['total'] for item in data],
+    }
+
+    return JsonResponse(chart)
+
+def get_admin_chart_rendimiento(request):
+    # Obtener los parámetros de la URL
+    planta = request.GET.get('planta')  # Filtrar por planta
+
+    if not planta:
+        return JsonResponse({"error": "El parámetro 'planta' es requerido."}, status=400)
+
+    # Obtiene el mes y año actuales
+    mes_actual = datetime.now().month
+    anio_actual = datetime.now().year
+
+    # Filtrar los registros por el mes, año y planta
+    registros = RegistroAciertos.objects.filter(fecha__month=mes_actual, fecha__year=anio_actual, planta_fk=planta)
+
+    # Sumar las cantidades totales y perdidas
+    cantidad_total = sum([registro.cantidad_total for registro in registros])
+    cantidad_perdida = sum([registro.cantidad_perdida for registro in registros])
+
+    # Calcular el porcentaje de detección correcta
+    if cantidad_total > 0:
+        porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100
+    else:
+        porcentaje_correcta = 0
+
+    # Datos para el gráfico circular
+    data = {
+        "correcta": porcentaje_correcta,
+        "perdida": 100 - porcentaje_correcta
+    }
+
+    return JsonResponse(data)
+
+def get_admin_chart_extra(request):
+    # Obtener los parámetros de la URL
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    planta = request.GET.get('planta')  # Filtrar por planta
+
+    if not fecha_inicio or not fecha_fin or not planta:
+        return JsonResponse({"error": "Los parámetros 'fecha_inicio', 'fecha_fin' y 'planta' son requeridos."}, status=400)
+
+    try:
+        # Convertir las fechas a objetos datetime
+        fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+        fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d')
+    except ValueError:
+        return JsonResponse({"error": "Formato de fecha inválido. Use 'YYYY-MM-DD'."}, status=400)
+
+    # Filtrar por fechas y planta
+    query = ErroresModel.objects.filter(fecha__range=[fecha_inicio, fecha_fin], planta_fk=planta)
+
+    # Agrupar por fecha truncada (día) y contar errores
+    data = (
+        query.annotate(fecha_truncada=TruncDate('fecha'))
+        .values('fecha_truncada')
+        .annotate(total=Count('id_error'))
+        .order_by('fecha_truncada')
+    )
+
+    # Preparar los datos para el gráfico
+    chart = {
+        "xAxis": [str(item['fecha_truncada']) for item in data],
+        "yAxis": [item['total'] for item in data],
+    }
+
+    return JsonResponse(chart)
+
+
