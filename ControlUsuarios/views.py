@@ -22,6 +22,7 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 import tempfile
 from reportlab.lib.pagesizes import letter
+from datetime import datetime
 
 
 def change_password(request, user_id):
@@ -233,12 +234,14 @@ def logout_view(request):
     # Redirige al usuario a la página de inicio de sesión o a la página inicial
     return redirect('login')
 
-from datetime import datetime
-
 def generar_reporte(request):
-    planta = request.GET.get('planta')
-    mes = request.GET.get('mes')
-    anio = request.GET.get('anio')
+    planta_default = 1
+    mes_default = "1"
+    anio_default = 2024
+    
+    planta = request.GET.get('planta',planta_default)
+    mes = request.GET.get('mes',mes_default)
+    anio = request.GET.get('anio',anio_default)
 
     # Obtener las plantas y años disponibles
     plantas = PlantaModel.objects.all()
