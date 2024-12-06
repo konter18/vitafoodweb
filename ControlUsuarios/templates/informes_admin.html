@@ -52,15 +52,6 @@
     </form>
 
     <div class="pdf-container mt-4" id="pdf-container">
-        <!-- Mostrar los resultados del informe -->
-        {% if cantidad_total %}
-        <p><strong>Planta:</strong> {{ planta }}</p>
-        <p><strong>Mes:</strong> {{ mes }}</p>
-        <p><strong>Año:</strong> {{ anio }}</p>
-        <p><strong>Cantidad Total:</strong> {{ cantidad_total }}</p>
-        <p><strong>Cantidad Perdida:</strong> {{ cantidad_perdida }}</p>
-        <p><strong>Porcentaje Correcto:</strong> {{ porcentaje_correcta }}%</p>
-        <p><strong>Porcentaje Perdida:</strong> {{ porcentaje_perdida }}%</p>
 
         <h4>Previsualización del Informe PDF:</h4>
         <iframe src="{% url 'generar_pdf' %}?planta={{planta_default}}&mes={{mes}}&anio={{anio}}" width="100%" height="600px"></iframe>
@@ -68,7 +59,6 @@
         <a href="{% url 'generar_pdf' %}?planta={{planta}}&mes={{mes}}&anio={{anio}}" target="_blank">
             Descargar Informe PDF
         </a>
-        {% endif %}
     </div>
 </div>
 

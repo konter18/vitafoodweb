@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect,get_object_or_404
-from ControlUsuarios.models import CustomUser,PlantaModel,RegistroAciertos,PlantaModel
+from ControlUsuarios.models import CustomUser,PlantaModel,RegistroAciertos,PlantaModel,ErroresModel
 from django.contrib.auth import login, authenticate, logout,get_user_model
 from .forms import CustomAuthenticationForm, CustomUserSupervisorView
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -22,8 +22,9 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 import tempfile
 from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
 from datetime import datetime
-
+from django.db.models import Count
 
 def change_password(request, user_id):
     if request.method == 'POST':
@@ -300,19 +301,31 @@ def generar_reporte(request):
     return render(request, 'informes_admin.html', context)
 
 def generar_pdf(request):
-    planta = request.GET.get('planta')
-    mes = request.GET.get('mes')
+    planta_id = request.GET.get('planta')
+    mes = int(request.GET.get('mes'))  # Asegúrate de convertir 'mes' a entero
     anio = request.GET.get('anio')
 
     # Verificar que los parámetros están presentes
-    if not planta or not mes or not anio:
+    if not planta_id or not mes or not anio:
         return HttpResponse("Error: Los parámetros 'planta', 'mes' y 'anio' son necesarios.", status=400)
 
-    # Verificar que la planta existe
-    if not PlantaModel.objects.filter(id_planta=planta).exists():
+    # Verificar que la planta existe y obtener el nombre
+    try:
+        planta = PlantaModel.objects.get(id_planta=planta_id)
+    except PlantaModel.DoesNotExist:
         return HttpResponse("Error: Planta no válida.", status=400)
 
-    # Filtrar registros
+    # Obtener el nombre de la planta
+    planta_nombre = planta.nombre_planta
+
+    # Convertir el número del mes a su nombre correspondiente
+    meses = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ]
+    nombre_mes = meses[mes - 1]
+
+    # Filtrar registros de aciertos
     registros = RegistroAciertos.objects.filter(
         fecha__month=mes,
         fecha__year=anio,
@@ -330,20 +343,84 @@ def generar_pdf(request):
         porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100
         porcentaje_perdida = 100 - porcentaje_correcta
 
+    # Filtrar errores por planta, mes y año
+    registros_errores = ErroresModel.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta
+    )
+
+    # Contar los errores por tipo
+    errores_por_tipo = registros_errores.values('tipo_error').annotate(cantidad_error=Count('id_error'))
+
+    # Crear el contenido del informe
+    informe_texto = (
+        f"Informe de Rendimiento de Detección de {nombre_mes} del {anio}\n\n"
+        f"Planta: {planta_nombre}\n\n"  
+        f"Resumen del rendimiento de detección de la planta durante el mes de {nombre_mes} del año {anio}:\n\n"
+        f"Durante el mes de {nombre_mes} de {anio}, la planta {planta_nombre} procesó un total de {cantidad_total} productos. "
+        f"De este total, {cantidad_perdida} productos fueron identificados como errores. Esto nos proporciona un "
+        f"porcentaje de acierto de {round(porcentaje_correcta, 2)}%, lo que refleja la eficiencia del sistema de "
+        f"detección. Por otro lado, el porcentaje de error observado fue de {round(porcentaje_perdida, 2)}%, lo cual "
+        f"indica el porcentaje de error del mes.\n\n"
+        f"Este informe está basado en los registros de la planta durante el mes de {nombre_mes} y tiene como objetivo "
+        f"proporcionar un análisis detallado de los errores detectados en el proceso de producción.\n\n"
+        f"Errores Identificados:\n\n"
+        f"En cuanto a los errores, se identificaron los siguientes tipos de incidencias durante el mes de {nombre_mes} del {anio}:\n\n"
+    )
+
+    for error in errores_por_tipo:
+        informe_texto += f"- {error['tipo_error']}: {error['cantidad_error']} errores\n"
+
     # Generar el PDF
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     c.setFont("Helvetica", 12)
-    c.drawString(100, 750, f"Informe de Rendimiento de Detección ({mes}/{anio})")
-    c.drawString(100, 730, f"Planta: {planta}")
-    c.drawString(100, 710, f"Cantidad Total: {cantidad_total}")
-    c.drawString(100, 690, f"Cantidad Perdida: {cantidad_perdida}")
-    c.drawString(100, 670, f"Porcentaje Correcto: {round(porcentaje_correcta, 2)}%")
-    c.drawString(100, 650, f"Porcentaje Perdida: {round(porcentaje_perdida, 2)}%")
+
+    # Márgenes de la página
+    margin_left = 50
+    margin_right = 50
+    margin_top = 750
+    line_height = 14
+
+    # Añadir el texto al PDF
+    y_position = margin_top
+    for line in informe_texto.split('\n'):
+        # Verificar el largo del texto para ajustarlo dentro de los márgenes
+        max_line_width = letter[0] - margin_left - margin_right
+        line_width = c.stringWidth(line, "Helvetica", 12)
+
+        if line_width > max_line_width:
+            # Dividir el texto largo en varias líneas
+            words = line.split(' ')
+            current_line = ""
+            for word in words:
+                test_line = f"{current_line} {word}".strip()
+                test_line_width = c.stringWidth(test_line, "Helvetica", 12)
+                if test_line_width <= max_line_width:
+                    current_line = test_line
+                else:
+                    c.drawString(margin_left, y_position, current_line)
+                    y_position -= line_height
+                    current_line = word
+            # Dibujar la última línea
+            c.drawString(margin_left, y_position, current_line)
+            y_position -= line_height
+        else:
+            c.drawString(margin_left, y_position, line)
+            y_position -= line_height
+
+        if y_position <= 100:
+            c.showPage()  # Crear nueva página
+            c.setFont("Helvetica", 12)
+            y_position = margin_top  # Reiniciar la posición Y
+
     c.save()
 
     buffer.seek(0)
     return HttpResponse(buffer, content_type='application/pdf')
+
+
 
 @login_required
 def eliminar_usuario(request, pk):
