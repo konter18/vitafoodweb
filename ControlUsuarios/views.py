@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect,get_object_or_404
-from ControlUsuarios.models import CustomUser,PlantaModel
+from ControlUsuarios.models import CustomUser,PlantaModel,RegistroAciertos,PlantaModel
 from django.contrib.auth import login, authenticate, logout,get_user_model
 from .forms import CustomAuthenticationForm, CustomUserSupervisorView
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -12,11 +12,17 @@ from django.urls import reverse_lazy
 from django import forms
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.core.exceptions import ValidationError
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password,check_password
 from .models import ErroresModel
+import os
+from io import BytesIO
+from reportlab.pdfgen import canvas
+import tempfile
+from reportlab.lib.pagesizes import letter
+
 
 def change_password(request, user_id):
     if request.method == 'POST':
@@ -226,6 +232,115 @@ def logout_view(request):
     logout(request)
     # Redirige al usuario a la página de inicio de sesión o a la página inicial
     return redirect('login')
+
+from datetime import datetime
+
+def generar_reporte(request):
+    planta = request.GET.get('planta')
+    mes = request.GET.get('mes')
+    anio = request.GET.get('anio')
+
+    # Obtener las plantas y años disponibles
+    plantas = PlantaModel.objects.all()
+    anios = RegistroAciertos.objects.values_list('fecha__year', flat=True).distinct()
+
+    # Validar que los parámetros están presentes
+    if not planta or not mes or not anio:
+        return render(request, 'informes_admin.html', {
+            "error": "Los parámetros 'planta', 'mes' y 'anio' son requeridos.",
+            "plantas": plantas,
+            "anios": anios,
+        })
+
+    # Validar que la planta seleccionada existe
+    if not PlantaModel.objects.filter(id_planta=planta).exists():
+        return render(request, 'informes_admin.html', {
+            "error": "La planta seleccionada no es válida.",
+            "plantas": plantas,
+            "anios": anios,
+        })
+
+    # Filtrar los registros según los parámetros
+    registros = RegistroAciertos.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta
+    )
+
+    # Si no hay registros, mostrar un mensaje de error
+    if not registros.exists():
+        return render(request, 'informes_admin.html', {
+            "error": "No hay datos disponibles para los parámetros seleccionados.",
+            "plantas": plantas,
+            "anios": anios,
+        })
+
+    # Calcular totales y porcentajes
+    cantidad_total = sum([registro.cantidad_total for registro in registros])
+    cantidad_perdida = sum([registro.cantidad_perdida for registro in registros])
+    porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100 if cantidad_total > 0 else 0
+    porcentaje_perdida = 100 - porcentaje_correcta
+
+    # Pasar los datos al contexto
+    context = {
+        "cantidad_total": cantidad_total,
+        "cantidad_perdida": cantidad_perdida,
+        "porcentaje_correcta": porcentaje_correcta,
+        "porcentaje_perdida": porcentaje_perdida,
+        "plantas": plantas,
+        "anios": anios,
+        "planta_default": planta,
+        "mes": mes,
+        "anio": anio,
+    }
+
+    return render(request, 'informes_admin.html', context)
+
+def generar_pdf(request):
+    planta = request.GET.get('planta')
+    mes = request.GET.get('mes')
+    anio = request.GET.get('anio')
+
+    # Verificar que los parámetros están presentes
+    if not planta or not mes or not anio:
+        return HttpResponse("Error: Los parámetros 'planta', 'mes' y 'anio' son necesarios.", status=400)
+
+    # Verificar que la planta existe
+    if not PlantaModel.objects.filter(id_planta=planta).exists():
+        return HttpResponse("Error: Planta no válida.", status=400)
+
+    # Filtrar registros
+    registros = RegistroAciertos.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta
+    )
+
+    # Calcular los totales y porcentajes
+    cantidad_total = sum([registro.cantidad_total for registro in registros])
+    cantidad_perdida = sum([registro.cantidad_perdida for registro in registros])
+
+    if cantidad_total == 0:
+        porcentaje_correcta = 0
+        porcentaje_perdida = 0
+    else:
+        porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100
+        porcentaje_perdida = 100 - porcentaje_correcta
+
+    # Generar el PDF
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    c.setFont("Helvetica", 12)
+    c.drawString(100, 750, f"Informe de Rendimiento de Detección ({mes}/{anio})")
+    c.drawString(100, 730, f"Planta: {planta}")
+    c.drawString(100, 710, f"Cantidad Total: {cantidad_total}")
+    c.drawString(100, 690, f"Cantidad Perdida: {cantidad_perdida}")
+    c.drawString(100, 670, f"Porcentaje Correcto: {round(porcentaje_correcta, 2)}%")
+    c.drawString(100, 650, f"Porcentaje Perdida: {round(porcentaje_perdida, 2)}%")
+    c.save()
+
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type='application/pdf')
 
 @login_required
 def eliminar_usuario(request, pk):

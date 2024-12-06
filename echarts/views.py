@@ -212,8 +212,6 @@ def get_admin_chart_rendimiento(request):
     return JsonResponse(data)
 
 
-
-
 def get_admin_chart_extra(request):
     # Obtener los parámetros de la URL
     fecha_inicio = request.GET.get('fecha_inicio')

@@ -1,0 +1,99 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <div class="container">
+        <h3>Informe de Rendimiento de Detección</h3>
+
+        <!-- Mostrar mensaje de error si es necesario -->
+        {% if error %}
+            <div class="alert alert-danger">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <!-- Formulario para filtrar por planta, mes y año -->
+        <form id="formGenerarInforme" method="get" action="{% url 'informes_admin' %}">
+            <div class="form-group mt-4">
+                <label for="planta">Planta:</label>
+                <select name="planta" id="planta" class="form-control">
+                    {% for planta in plantas %}
+                        <option value="{{ planta.id_planta }}" {% if planta.id_planta == planta_default %}selected{% endif %}>{{ planta.nombre_planta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="mes">Mes:</label>
+                <select id="mes" name="mes" class="form-control">
+                    <option value="1" {% if mes == "1" %}selected{% endif %}>Enero</option>
+                    <option value="2" {% if mes == "2" %}selected{% endif %}>Febrero</option>
+                    <option value="3" {% if mes == "3" %}selected{% endif %}>Marzo</option>
+                    <option value="4" {% if mes == "4" %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if mes == "5" %}selected{% endif %}>Mayo</option>
+                    <option value="6" {% if mes == "6" %}selected{% endif %}>Junio</option>
+                    <option value="7" {% if mes == "7" %}selected{% endif %}>Julio</option>
+                    <option value="8" {% if mes == "8" %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if mes == "9" %}selected{% endif %}>Septiembre</option>
+                    <option value="10" {% if mes == "10" %}selected{% endif %}>Octubre</option>
+                    <option value="11" {% if mes == "11" %}selected{% endif %}>Noviembre</option>
+                    <option value="12" {% if mes == "12" %}selected{% endif %}>Diciembre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="anio">Año:</label>
+                <select id="anio" name="anio" class="form-control">
+                    {% for anio_item in anios %}
+                        <option value="{{ anio_item }}" {% if anio_item == anio %}selected{% endif %}>{{ anio_item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">Generar Informe</button>
+        </form>
+        <div class="pdf-container mt-4">
+            <!-- Mostrar los resultados del informe -->
+            {% if cantidad_total %}
+            <p><strong>Planta:</strong> {{ planta }}</p>
+            <p><strong>Mes:</strong> {{ mes }}</p>
+            <p><strong>Año:</strong> {{ anio }}</p>
+            <p><strong>Cantidad Total:</strong> {{ cantidad_total }}</p>
+            <p><strong>Cantidad Perdida:</strong> {{ cantidad_perdida }}</p>
+            <p><strong>Porcentaje Correcto:</strong> {{ porcentaje_correcta }}%</p>
+            <p><strong>Porcentaje Perdida:</strong> {{ porcentaje_perdida }}%</p>
+
+            <h4>Previsualización del Informe PDF:</h4>
+            <iframe src="{% url 'generar_pdf' %}?planta={{ planta_default }}&mes={{ mes }}&anio={{ anio }}" width="100%" height="600px"></iframe>
+
+
+            <a href="{% url 'generar_pdf' %}?planta={{planta}}&mes={{mes}}&anio={{anio}}" target="_blank">
+                Descargar Informe PDF
+            </a>
+        {% endif %}
+        </div>
+
+    </div>
+
+
+{% endblock %}
+<script>
+    var url = "{% url 'generar_pdf' %}?planta={{planta}}&mes={{mes}}&anio={{anio}}";
+
+    pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+      var pdfDoc = pdfDoc_;
+      var canvas = document.createElement("canvas");
+      var ctx = canvas.getContext("2d");
+      var currentPage = 1;
+      
+      function renderPage(pageNum) {
+        pdfDoc.getPage(pageNum).then(function(page) {
+          var viewport = page.getViewport({ scale: 1 });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          page.render({ canvasContext: ctx, viewport: viewport });
+        });
+      }
+    
+      renderPage(currentPage);
+      document.getElementById('pdf-container').appendChild(canvas);
+    });
+    
+  </script>
