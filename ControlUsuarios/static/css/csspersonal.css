@@ -49,10 +49,7 @@ a {
     border-bottom-right-radius: 0;
     background-color: #ffe7bf;
 }
-.form-control{
-    border: 2px solid #4a3a47;
-    background:rgb(255, 231, 191);
-}
+
 .form-control:focus {
     border-color: #4a3a47;
 
@@ -60,16 +57,6 @@ a {
 .input-group{
     border: 2px solid #4a3a47;
     border-radius: 0.58rem;
-}
-#id_planta_fk {
-    background-color: #ffe7bf; /* Fondo del select */
-    border: 2px solid #4a3a47;
-}
-
-#id_planta_fk option {
-    background-color: #ffe7bf; /* Fondo de las opciones */
-    color: #000;              
-    border-color: #4a3a47;
 }
 .table-bordered{
     border:2px #4a3a47;

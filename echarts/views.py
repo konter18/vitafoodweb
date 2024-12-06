@@ -159,34 +159,60 @@ def get_admin_chart_barras(request):
 def get_admin_chart_rendimiento(request):
     # Obtener los parámetros de la URL
     planta = request.GET.get('planta')  # Filtrar por planta
+    mes = request.GET.get('mes')  # Mes específico
+    anio = request.GET.get('anio')  # Año específico
 
-    if not planta:
-        return JsonResponse({"error": "El parámetro 'planta' es requerido."}, status=400)
+    # Validar que los parámetros están presentes
+    if not planta or not mes or not anio:
+        return JsonResponse({"error": "Los parámetros 'planta', 'mes' y 'anio' son requeridos."}, status=400)
 
-    # Obtiene el mes y año actuales
-    mes_actual = datetime.now().month
-    anio_actual = datetime.now().year
+    try:
+        mes = int(mes)
+        anio = int(anio)
+    except ValueError:
+        return JsonResponse({"error": "Mes y año deben ser valores enteros válidos."}, status=400)
 
-    # Filtrar los registros por el mes, año y planta
-    registros = RegistroAciertos.objects.filter(fecha__month=mes_actual, fecha__year=anio_actual, planta_fk=planta)
+    # Filtrar los registros por mes, año y planta
+    registros = RegistroAciertos.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta
+    )
 
     # Sumar las cantidades totales y perdidas
-    cantidad_total = sum([registro.cantidad_total for registro in registros])
-    cantidad_perdida = sum([registro.cantidad_perdida for registro in registros])
+    cantidad_total = sum(registro.cantidad_total for registro in registros)
+    cantidad_perdida = sum(registro.cantidad_perdida for registro in registros)
+
+    # Depuración
+    print(f"Cantidad total: {cantidad_total}, Cantidad perdida: {cantidad_perdida}")
+
+    # Verificar si existen registros
+    if cantidad_total == 0:
+        return JsonResponse({
+            "error": "No se encontraron datos para los filtros aplicados.",
+            "correcta": 0,
+            "perdida": 0
+        }, status=404)
 
     # Calcular el porcentaje de detección correcta
-    if cantidad_total > 0:
-        porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100
-    else:
-        porcentaje_correcta = 0
+    porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100
+
+    # Asegurarse de que los porcentajes sumen 100%
+    porcentaje_perdida = 100 - porcentaje_correcta
+
+    # Depuración adicional
+    print(f"Porcentaje correcta: {porcentaje_correcta}, Porcentaje perdida: {porcentaje_perdida}")
 
     # Datos para el gráfico circular
     data = {
-        "correcta": porcentaje_correcta,
-        "perdida": 100 - porcentaje_correcta
+        "correcta": round(porcentaje_correcta, 2),
+        "perdida": round(porcentaje_perdida, 2)
     }
 
     return JsonResponse(data)
+
+
+
 
 def get_admin_chart_extra(request):
     # Obtener los parámetros de la URL

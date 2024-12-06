@@ -79,7 +79,8 @@
         const anio = anioSelect.value;
   
         // URL para obtener los datos del gráfico de rendimiento general
-        let urlRendimiento = `/echarts/get_admin_chart_rendimiento/?planta=${planta}`;
+        let urlRendimiento = `/echarts/get_admin_chart_rendimiento/?planta=${planta}&mes=${mes}&anio=${anio}`;
+
   
         fetch(urlRendimiento)
           .then(response => response.json())
