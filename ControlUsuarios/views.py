@@ -25,6 +25,17 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from datetime import datetime
 from django.db.models import Count
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics import renderPDF
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.platypus import Image
+from PIL import Image
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.units import inch
+from echarts.views import crear_grafico_barras, crear_grafico_pastel, crear_grafico_lineas
+from django.db.models.functions import TruncDay
 
 def change_password(request, user_id):
     if request.method == 'POST':
@@ -92,7 +103,6 @@ def login_view(request):
 
     return render(request, 'index.html')
 
-
 def redirect_to_dashboard(request):
     """
     Redirige al usuario a la vista correspondiente según su rol.
@@ -105,8 +115,7 @@ def redirect_to_dashboard(request):
     else:
         logout(request)  # Cierra la sesión si el rol no es válido
         messages.error(request, 'No tienes un rol válido asignado.')
-        return redirect('login')
-    
+        return redirect('login')    
 # Vista para crear usuarios solo accesible para supervisores
 class UserCreateView(View):
     def get(self, request):
@@ -303,7 +312,7 @@ def generar_reporte(request):
 def generar_pdf(request):
     planta_id = request.GET.get('planta')
     mes = int(request.GET.get('mes'))  # Asegúrate de convertir 'mes' a entero
-    anio = request.GET.get('anio')
+    anio = int(request.GET.get('anio'))  # Convertir a entero
 
     # Verificar que los parámetros están presentes
     if not planta_id or not mes or not anio:
@@ -358,8 +367,8 @@ def generar_pdf(request):
         f"Informe de Rendimiento de Detección de {nombre_mes} del {anio}\n\n"
         f"Planta: {planta_nombre}\n\n"  
         f"Resumen del rendimiento de detección de la planta durante el mes de {nombre_mes} del año {anio}:\n\n"
-        f"Durante el mes de {nombre_mes} de {anio}, la planta {planta_nombre} procesó un total de {cantidad_total} productos. "
-        f"De este total, {cantidad_perdida} productos fueron identificados como errores. Esto nos proporciona un "
+        f"Durante el mes de {nombre_mes} de {anio}, la planta {planta_nombre} procesó un total de {cantidad_total} envases. "
+        f"De este total, {cantidad_perdida} envases fueron identificados como errores. Esto nos proporciona un "
         f"porcentaje de acierto de {round(porcentaje_correcta, 2)}%, lo que refleja la eficiencia del sistema de "
         f"detección. Por otro lado, el porcentaje de error observado fue de {round(porcentaje_perdida, 2)}%, lo cual "
         f"indica el porcentaje de error del mes.\n\n"
@@ -383,7 +392,6 @@ def generar_pdf(request):
     margin_top = 750
     line_height = 14
 
-    # Añadir el texto al PDF
     y_position = margin_top
     for line in informe_texto.split('\n'):
         # Verificar el largo del texto para ajustarlo dentro de los márgenes
@@ -415,11 +423,69 @@ def generar_pdf(request):
             c.setFont("Helvetica", 12)
             y_position = margin_top  # Reiniciar la posición Y
 
-    c.save()
+    # Aquí añadimos espacio para el gráfico de barras en la primera página
+    y_position -= 210  # Espacio extra para evitar que se solapen los gráficos con el texto
 
+    # **Generar Gráfico de Barras**
+    buffer_barras = crear_grafico_barras(errores_por_tipo)
+    c.drawImage(ImageReader(buffer_barras), 50, y_position, width=500, height=230)
+
+
+    # **Nueva página para gráficos 2 y 3 (pastel y evolución)**
+    c.showPage()
+
+    # Configurar un margen superior para la segunda página
+    margen_superior_segunda_hoja = 710  # Ajusta el espacio en la parte superior
+
+    # **Gráfico de Pastel**
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, margen_superior_segunda_hoja, "Gráfico de Proporción de Errores")
+    buffer_pastel = crear_grafico_pastel(errores_por_tipo)
+    y_position_pastel = margen_superior_segunda_hoja - 320  # Ajuste de la posición para el gráfico de pastel
+    # Calcular la posición centrada para el gráfico de pastel
+    x_position_pastel = (595 - 400) / 2  # Centrado en la página
+    c.drawImage(ImageReader(buffer_pastel), x_position_pastel, y_position_pastel, width=400, height=300)
+
+    # **Gráfico de Evolución**
+    # Calcular la posición para el gráfico de evolución, dejando un margen adicional
+    margen_extra = 20  # Espacio entre los gráficos
+    y_position_lineas = y_position_pastel - 220 - margen_extra  # Posición debajo del gráfico de pastel
+
+    # Asegurarse de que hay suficiente espacio en la página (por ejemplo, la posición no puede ser negativa)
+    if y_position_lineas < 100:  # Si no hay suficiente espacio en la página, reiniciar el margen superior
+        c.showPage()
+        y_position_lineas = 600  # Reiniciar la posición en la nueva página
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, y_position_lineas + 230, "Gráfico de Evolución de Errores")  # Título del gráfico de evolución
+
+    # Datos de evolución de errores
+    datos_evolucion = registros_errores.annotate(trunc_fecha=TruncDay('fecha')).values('trunc_fecha').annotate(cantidad_error=Count('id_error')).order_by('trunc_fecha')
+    buffer_lineas = crear_grafico_lineas(datos_evolucion)
+    c.drawImage(ImageReader(buffer_lineas), 50, y_position_lineas, width=500, height=220)
+
+    # Liberar recursos de los buffers
+    buffer_pastel.close()
+    buffer_lineas.close()
+
+    # Guardar el PDF
+    c.save()
     buffer.seek(0)
+
+    # Devolver el PDF como respuesta
     return HttpResponse(buffer, content_type='application/pdf')
 
+
+
+
+def agregar_imagen_al_pdf(c, buffer, x, y, width, height):
+    img = Image.open(buffer)
+    img = img.resize((width, height), Image.ANTIALIAS)
+    img_buffer = BytesIO()
+    img.save(img_buffer, format='PNG')
+    img_buffer.seek(0)
+
+    c.drawImage(ImageReader(img_buffer), x, y, width, height)
 
 
 @login_required

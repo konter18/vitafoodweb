@@ -4,7 +4,12 @@ from datetime import datetime
 from django.shortcuts import render
 from django.http import JsonResponse
 from ControlUsuarios.models import ErroresModel,RegistroAciertos,PlantaModel
-
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from io import BytesIO
+from PIL import Image
+import numpy as np
 def get_chart(request):
     # Obtener los parámetros de la URL
     fecha_inicio = request.GET.get('fecha_inicio')
@@ -247,4 +252,67 @@ def get_admin_chart_extra(request):
 
     return JsonResponse(chart)
 
+#graficos del pdf
+def crear_grafico_barras(errores_por_tipo):
+    tipos_error = [error['tipo_error'] for error in errores_por_tipo]
+    cantidades = [error['cantidad_error'] for error in errores_por_tipo]
 
+    # Generar una lista de colores para las barras (puedes personalizar los colores)
+    colores = plt.cm.Paired(np.linspace(0, 1, len(tipos_error)))  # Colores distintos para cada barra
+
+    # Crear gráfico de barras
+    fig, ax = plt.subplots()
+    ax.bar(tipos_error, cantidades, color=colores)
+
+    # Ajustar el gráfico
+    ax.set_xlabel('Tipo de Error')
+    ax.set_ylabel('Cantidad de Errores')
+    ax.set_title('Errores por Tipo')
+
+
+
+    # Guardar el gráfico en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+
+    return buffer
+
+
+def crear_grafico_pastel(errores_por_tipo, titulo="Gráfico Proporción de Errores"):
+    # Datos del gráfico
+    tipos = [error['tipo_error'] for error in errores_por_tipo]
+    cantidades = [error['cantidad_error'] for error in errores_por_tipo]
+
+    # Crear el gráfico
+    plt.figure(figsize=(6, 6))
+    plt.pie(cantidades, labels=tipos, autopct='%1.1f%%', startangle=140, colors=plt.cm.Paired.colors)
+    plt.title(titulo)
+
+    # Guardar el gráfico en memoria
+    buffer = BytesIO()
+    plt.tight_layout()
+    plt.savefig(buffer, format='png')
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+def crear_grafico_lineas(datos_evolucion):
+    # Asegúrate de usar 'trunc_fecha' en lugar de 'fecha'
+    fechas = [dato['trunc_fecha'] for dato in datos_evolucion]
+    cantidades = [dato['cantidad_error'] for dato in datos_evolucion]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(fechas, cantidades, marker='o', label='Errores')
+    plt.title("Gráfico de Evolución de errores")
+    plt.xlabel("Fecha")
+    plt.ylabel("Cantidad de errores")
+    plt.legend()
+    plt.grid(True)
+
+    # Guardar en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    plt.close()
+    return buffer
