@@ -4,61 +4,60 @@ from datetime import datetime
 from django.shortcuts import render
 from django.http import JsonResponse
 from ControlUsuarios.models import ErroresModel,RegistroAciertos,PlantaModel
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from io import BytesIO
+from PIL import Image
+import numpy as np
+from django.contrib.auth import get_user_model
 
 def get_chart(request):
-    # Obtener los parámetros de la URL
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
 
-    # Verificación de que las fechas están presentes
     if not fecha_inicio or not fecha_fin:
         return JsonResponse({"error": "Las fechas 'fecha_inicio' y 'fecha_fin' son requeridas."}, status=400)
-
     try:
-        # Convertir las fechas a objetos datetime
         fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
         fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d')
     except ValueError:
         return JsonResponse({"error": "Formato de fecha inválido. Use 'YYYY-MM-DD'."}, status=400)
 
-    # Verificación adicional para mostrar las fechas recibidas
-    print(f"Fecha de inicio recibida: {fecha_inicio}, Fecha de fin recibida: {fecha_fin}")
+    User = get_user_model()
+    planta_usuario = User.objects.filter(id=request.user.id).values_list('planta_fk', flat=True).first()
 
-    # Consultar la base de datos con las fechas truncadas (sin hora)
-    query = ErroresModel.objects.filter(fecha__range=[fecha_inicio, fecha_fin])
+    if not planta_usuario:
+        return JsonResponse({"error": "El usuario no tiene una planta asociada."}, status=400)
 
-    # Truncar la fecha a solo día, sin hora, para que las comparaciones sean correctas
-    query = query.annotate(fecha_truncada=TruncDate('fecha')) 
-
-    # Verificación de la cantidad de registros
-    print(f"Registros encontrados: {query.count()}")
-
-    # Agrupar por tipo de error y contar cuántos registros hay de cada tipo
+    query = ErroresModel.objects.filter(fecha__range=[fecha_inicio, fecha_fin], planta_fk=planta_usuario)
     data = (
-        query.values('tipo_error')  # Agrupar por tipo de error
-        .annotate(total=Count('id_error'))  # Contar los errores de cada tipo
-        .order_by('tipo_error')  # Ordenar por tipo de error
+        query.values('tipo_error')
+        .annotate(total=Count('id_error'))
+        .order_by('tipo_error')
     )
-
-    # Preparar los datos para el gráfico
     chart = {
-        "xAxis": [item['tipo_error'] for item in data],  # Tipos de error como etiquetas en el eje X
-        "yAxis": [item['total'] for item in data],  # Totales como valores en el eje Y
+        "xAxis": [item['tipo_error'] for item in data],
+        "yAxis": [item['total'] for item in data],
     }
-
-    # Verificación para mostrar los datos preparados
-    print(f"Datos del gráfico: {chart}")
-
     return JsonResponse(chart)
 
-
 def obtener_rendimiento_general(request):
-    # Obtiene el mes actual
+    # Obtiene el mes y año actuales
     mes_actual = datetime.now().month
     anio_actual = datetime.now().year
 
-    # Filtra los registros por el mes y año actuales
-    registros = RegistroAciertos.objects.filter(fecha__month=mes_actual, fecha__year=anio_actual)
+    # Obtener la planta asociada al usuario actual
+    planta_usuario = getattr(request.user, 'planta_fk', None)
+    if not planta_usuario:
+        return JsonResponse({"error": "No se pudo determinar la planta del usuario."}, status=400)
+
+    # Filtra los registros por el mes, año actuales y planta del usuario
+    registros = RegistroAciertos.objects.filter(
+        fecha__month=mes_actual,
+        fecha__year=anio_actual,
+        planta_fk=planta_usuario
+    )
 
     # Sumar las cantidades totales y perdidas
     cantidad_total = sum([registro.cantidad_total for registro in registros])
@@ -77,7 +76,6 @@ def obtener_rendimiento_general(request):
     }
 
     return JsonResponse(data)
-
 
 def get_supervisor_chart(request):
     # Obtener los parámetros de la URL
@@ -117,7 +115,7 @@ def get_supervisor_chart(request):
 
     return JsonResponse(chart)
 #···················································································································#
-#graficos de vista administrador
+#graficos de vista html administrador
 def get_admin_chart_barras(request):
     # Obtener los parámetros de la URL
     fecha_inicio = request.GET.get('fecha_inicio')
@@ -208,9 +206,7 @@ def get_admin_chart_rendimiento(request):
         "correcta": round(porcentaje_correcta, 2),
         "perdida": round(porcentaje_perdida, 2)
     }
-
     return JsonResponse(data)
-
 
 def get_admin_chart_extra(request):
     # Obtener los parámetros de la URL
@@ -247,4 +243,122 @@ def get_admin_chart_extra(request):
 
     return JsonResponse(chart)
 
+#graficos del pdf para administrador
+def crear_grafico_barras(errores_por_tipo):
+    tipos_error = [error['tipo_error'] for error in errores_por_tipo]
+    cantidades = [error['cantidad_error'] for error in errores_por_tipo]
+    # Generar una lista de colores para las barras (puedes personalizar los colores)
+    colores = plt.cm.Paired(np.linspace(0, 1, len(tipos_error)))  # Colores distintos para cada barra
+    # Crear gráfico de barras
+    fig, ax = plt.subplots()
+    ax.bar(tipos_error, cantidades, color=colores)
+    # Ajustar el gráfico
+    ax.set_xlabel('Tipo de Error')
+    ax.set_ylabel('Cantidad de Errores')
+    ax.set_title('Errores por Tipo')
+    # Guardar el gráfico en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    return buffer
 
+
+def crear_grafico_pastel(errores_por_tipo, titulo="Gráfico Proporción de Errores"):
+    # Datos del gráfico
+    tipos = [error['tipo_error'] for error in errores_por_tipo]
+    cantidades = [error['cantidad_error'] for error in errores_por_tipo]
+
+    # Crear el gráfico
+    plt.figure(figsize=(6, 6))
+    plt.pie(cantidades, labels=tipos, autopct='%1.1f%%', startangle=140, colors=plt.cm.Paired.colors)
+    plt.title(titulo)
+
+    # Guardar el gráfico en memoria
+    buffer = BytesIO()
+    plt.tight_layout()
+    plt.savefig(buffer, format='png')
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+def crear_grafico_lineas(datos_evolucion):
+    # Asegúrate de usar 'trunc_fecha' en lugar de 'fecha'
+    fechas = [dato['trunc_fecha'] for dato in datos_evolucion]
+    cantidades = [dato['cantidad_error'] for dato in datos_evolucion]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(fechas, cantidades, marker='o', label='Errores')
+    plt.title("Gráfico de Evolución de errores")
+    plt.xlabel("Fecha")
+    plt.ylabel("Cantidad de errores")
+    plt.legend()
+    plt.grid(True)
+
+    # Guardar en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    plt.close()
+    return buffer
+
+#graficos del pdf para supervisor
+def crear_grafico_barras_planta(errores_por_tipo_planta):
+    tipos_error = [error['tipo_error'] for error in errores_por_tipo_planta]
+    cantidades = [error['cantidad_error'] for error in errores_por_tipo_planta]
+
+    # Generar una lista de colores para las barras
+    colores = plt.cm.Paired(np.linspace(0, 1, len(tipos_error)))  # Colores distintos para cada barra
+
+    # Crear gráfico de barras
+    fig, ax = plt.subplots()
+    ax.bar(tipos_error, cantidades, color=colores)
+
+    # Ajustar el gráfico
+    ax.set_xlabel('Tipo de Error')
+    ax.set_ylabel('Cantidad de Errores')
+    ax.set_title('Errores por Tipo (Filtrado por Planta)')
+
+    # Guardar el gráfico en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+
+    return buffer
+
+def crear_grafico_pastel_planta(errores_por_tipo_planta, titulo="Gráfico Proporción de Errores (Filtrado por Planta)"):
+    # Datos del gráfico
+    tipos = [error['tipo_error'] for error in errores_por_tipo_planta]
+    cantidades = [error['cantidad_error'] for error in errores_por_tipo_planta]
+
+    # Crear el gráfico
+    plt.figure(figsize=(6, 6))
+    plt.pie(cantidades, labels=tipos, autopct='%1.1f%%', startangle=140, colors=plt.cm.Paired.colors)
+    plt.title(titulo)
+
+    # Guardar el gráfico en memoria
+    buffer = BytesIO()
+    plt.tight_layout()
+    plt.savefig(buffer, format='png')
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+def crear_grafico_lineas_planta(datos_evolucion_planta):
+    # Asegúrate de usar 'trunc_fecha' en lugar de 'fecha'
+    fechas = [dato['trunc_fecha'] for dato in datos_evolucion_planta]
+    cantidades = [dato['cantidad_error'] for dato in datos_evolucion_planta]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(fechas, cantidades, marker='o', label='Errores')
+    plt.title("Gráfico de Evolución de Errores (Filtrado por Planta)")
+    plt.xlabel("Fecha")
+    plt.ylabel("Cantidad de errores")
+    plt.legend()
+    plt.grid(True)
+
+    # Guardar en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    plt.close()
+    return buffer
