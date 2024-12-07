@@ -34,7 +34,7 @@ from reportlab.platypus import Image
 from PIL import Image
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import inch
-from echarts.views import crear_grafico_barras, crear_grafico_pastel, crear_grafico_lineas
+from echarts.views import crear_grafico_barras, crear_grafico_pastel, crear_grafico_lineas,crear_grafico_barras_planta,crear_grafico_lineas_planta,crear_grafico_pastel_planta
 from django.db.models.functions import TruncDay
 
 def change_password(request, user_id):
@@ -475,7 +475,227 @@ def generar_pdf(request):
     # Devolver el PDF como respuesta
     return HttpResponse(buffer, content_type='application/pdf')
 
+def generar_reporte_supervisor(request):
+    # Obtener la planta asignada al supervisor
+    planta_asignada = request.user.planta_fk  # Asegúrate de que `planta_fk` es el campo que enlaza la planta asignada.
 
+    if not planta_asignada:
+        return HttpResponse("Error: No tienes una planta asignada.", status=403)
+
+    mes_default = "1"
+    anio_default = 2024
+
+    mes = request.GET.get('mes', mes_default)
+    anio = request.GET.get('anio', anio_default)
+
+    # Obtener los años disponibles
+    anios = RegistroAciertos.objects.filter(planta_fk=planta_asignada).values_list('fecha__year', flat=True).distinct()
+
+    # Validar los parámetros
+    if not mes or not anio:
+        return render(request, 'informes_supervisor.html', {
+            "error": "Los parámetros 'mes' y 'anio' son requeridos.",
+            "anios": anios,
+        })
+
+    # Filtrar los registros por planta asignada, mes y año
+    registros = RegistroAciertos.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta_asignada
+    )
+
+    if not registros.exists():
+        return render(request, 'informes_supervisor.html', {
+            "error": "No hay datos disponibles para los parámetros seleccionados.",
+            "anios": anios,
+        })
+
+    # Calcular totales y porcentajes
+    cantidad_total = sum([registro.cantidad_total for registro in registros])
+    cantidad_perdida = sum([registro.cantidad_perdida for registro in registros])
+    porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100 if cantidad_total > 0 else 0
+    porcentaje_perdida = 100 - porcentaje_correcta
+
+    context = {
+        "cantidad_total": cantidad_total,
+        "cantidad_perdida": cantidad_perdida,
+        "porcentaje_correcta": porcentaje_correcta,
+        "porcentaje_perdida": porcentaje_perdida,
+        "anio": anio,
+        "mes": mes,
+        "planta_asignada": planta_asignada.nombre_planta,
+        "anios": anios,
+    }
+
+    return render(request, 'informes_supervisor.html', context)
+
+def generar_pdf_supervisor(request):
+    # Obtener la planta asignada al usuario logueado
+    planta_asignada = request.user.planta_fk
+
+    if not planta_asignada:
+        return HttpResponse("Error: No tienes una planta asignada.", status=403)
+
+    mes = int(request.GET.get('mes'))  # Asegúrate de convertir 'mes' a entero
+    anio = int(request.GET.get('anio'))  # Convertir a entero
+
+    # Verificar que los parámetros 'mes' y 'anio' están presentes
+    if not mes or not anio:
+        return HttpResponse("Error: Los parámetros 'mes' y 'anio' son necesarios.", status=400)
+
+    # Obtener el nombre de la planta asignada
+    planta_nombre = planta_asignada.nombre_planta
+
+    # Convertir el número del mes a su nombre correspondiente
+    meses = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ]
+    nombre_mes = meses[mes - 1]
+
+    # Filtrar registros de aciertos para la planta asignada
+    registros = RegistroAciertos.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta_asignada
+    )
+
+    # Calcular los totales y porcentajes
+    cantidad_total = sum([registro.cantidad_total for registro in registros])
+    cantidad_perdida = sum([registro.cantidad_perdida for registro in registros])
+
+    if cantidad_total == 0:
+        porcentaje_correcta = 0
+        porcentaje_perdida = 0
+    else:
+        porcentaje_correcta = (cantidad_total - cantidad_perdida) / cantidad_total * 100
+        porcentaje_perdida = 100 - porcentaje_correcta
+
+    # Filtrar errores por planta, mes y año
+    registros_errores = ErroresModel.objects.filter(
+        fecha__month=mes,
+        fecha__year=anio,
+        planta_fk=planta_asignada
+    )
+
+    # Contar los errores por tipo
+    errores_por_tipo = registros_errores.values('tipo_error').annotate(cantidad_error=Count('id_error'))
+
+    # Crear el contenido del informe
+    informe_texto = (
+        f"Informe de Rendimiento de Detección de {nombre_mes} del {anio}\n\n"
+        f"Planta: {planta_nombre}\n\n"  
+        f"Resumen del rendimiento de detección de la planta durante el mes de {nombre_mes} del año {anio}:\n\n"
+        f"Durante el mes de {nombre_mes} de {anio}, la planta {planta_nombre} procesó un total de {cantidad_total} envases. "
+        f"De este total, {cantidad_perdida} envases fueron identificados como errores. Esto nos proporciona un "
+        f"porcentaje de acierto de {round(porcentaje_correcta, 2)}%, lo que refleja la eficiencia del sistema de "
+        f"detección. Por otro lado, el porcentaje de error observado fue de {round(porcentaje_perdida, 2)}%, lo cual "
+        f"indica el porcentaje de error del mes.\n\n"
+        f"Este informe está basado en los registros de la planta durante el mes de {nombre_mes} y tiene como objetivo "
+        f"proporcionar un análisis detallado de los errores detectados en el proceso de producción.\n\n"
+        f"Errores Identificados:\n\n"
+        f"En cuanto a los errores, se identificaron los siguientes tipos de incidencias durante el mes de {nombre_mes} del {anio}:\n\n"
+    )
+
+    for error in errores_por_tipo:
+        informe_texto += f"- {error['tipo_error']}: {error['cantidad_error']} errores\n"
+
+    # Generar el PDF
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    c.setFont("Helvetica", 12)
+
+    # Márgenes de la página
+    margin_left = 50
+    margin_right = 50
+    margin_top = 750
+    line_height = 14
+
+    y_position = margin_top
+    for line in informe_texto.split('\n'):
+        # Verificar el largo del texto para ajustarlo dentro de los márgenes
+        max_line_width = letter[0] - margin_left - margin_right
+        line_width = c.stringWidth(line, "Helvetica", 12)
+
+        if line_width > max_line_width:
+            # Dividir el texto largo en varias líneas
+            words = line.split(' ')
+            current_line = ""
+            for word in words:
+                test_line = f"{current_line} {word}".strip()
+                test_line_width = c.stringWidth(test_line, "Helvetica", 12)
+                if test_line_width <= max_line_width:
+                    current_line = test_line
+                else:
+                    c.drawString(margin_left, y_position, current_line)
+                    y_position -= line_height
+                    current_line = word
+            # Dibujar la última línea
+            c.drawString(margin_left, y_position, current_line)
+            y_position -= line_height
+        else:
+            c.drawString(margin_left, y_position, line)
+            y_position -= line_height
+
+        if y_position <= 100:
+            c.showPage()  # Crear nueva página
+            c.setFont("Helvetica", 12)
+            y_position = margin_top  # Reiniciar la posición Y
+
+    # Aquí añadimos espacio para el gráfico de barras en la primera página
+    y_position -= 210  # Espacio extra para evitar que se solapen los gráficos con el texto
+
+    # Filtrar errores por planta del usuario
+    errores_por_tipo_planta = registros_errores.filter(planta_fk=planta_asignada).values('tipo_error').annotate(cantidad_error=Count('id_error'))
+    # **Generar Gráfico de Barras**
+    buffer_barras_planta = crear_grafico_barras_planta(errores_por_tipo_planta)
+    c.drawImage(ImageReader(buffer_barras_planta), 50, y_position, width=500, height=230)
+
+    # **Nueva página para gráficos 2 y 3 (pastel y evolución)**
+    c.showPage()
+
+    # Configurar un margen superior para la segunda página
+    margen_superior_segunda_hoja = 710  # Ajusta el espacio en la parte superior
+
+    # **Gráfico de Pastel**
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, margen_superior_segunda_hoja, "Gráfico de Proporción de Errores")
+    buffer_pastel_planta = crear_grafico_pastel_planta(errores_por_tipo_planta)
+    y_position_pastel = margen_superior_segunda_hoja - 320  # Ajuste de la posición para el gráfico de pastel
+    # Calcular la posición centrada para el gráfico de pastel
+    x_position_pastel = (595 - 400) / 2  # Centrado en la página
+    c.drawImage(ImageReader(buffer_pastel_planta), x_position_pastel, y_position_pastel, width=400, height=300)
+
+    # **Gráfico de Evolución**
+    # Calcular la posición para el gráfico de evolución, dejando un margen adicional
+    margen_extra = 20  # Espacio entre los gráficos
+    y_position_lineas = y_position_pastel - 220 - margen_extra  # Posición debajo del gráfico de pastel
+
+    # Asegurarse de que hay suficiente espacio en la página (por ejemplo, la posición no puede ser negativa)
+    if y_position_lineas < 100:  # Si no hay suficiente espacio en la página, reiniciar el margen superior
+        c.showPage()
+        y_position_lineas = 600  # Reiniciar la posición en la nueva página
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, y_position_lineas + 230, "Gráfico de Evolución de Errores")  # Título del gráfico de evolución
+
+    # Gráfico de Evolución Filtrado por Planta
+    datos_evolucion_planta = registros_errores.filter(planta_fk=planta_asignada).annotate(trunc_fecha=TruncDay('fecha')).values('trunc_fecha').annotate(cantidad_error=Count('id_error')).order_by('trunc_fecha')
+    buffer_lineas_planta = crear_grafico_lineas_planta(datos_evolucion_planta)
+    c.drawImage(ImageReader(buffer_lineas_planta), 50, y_position_lineas, width=500, height=220)
+
+    # Liberar recursos de los buffers
+    buffer_barras_planta.close()
+    buffer_pastel_planta.close()
+    buffer_lineas_planta.close()
+
+    # Guardar el PDF
+    c.save()
+    buffer.seek(0)
+
+    # Devolver el PDF como respuesta
+    return HttpResponse(buffer, content_type='application/pdf')
 
 
 def agregar_imagen_al_pdf(c, buffer, x, y, width, height):
@@ -518,8 +738,22 @@ def dashboard(request):
         })
 
     elif is_supervisor(request.user):
-        return render(request, 'supervisor_dashboard.html', {'show_welcome': True})
+        # Obtener la planta asignada al supervisor
+        planta_asignada = request.user.planta_fk  # Ajustar según el nombre exacto del campo en el modelo de usuario
+
+        if planta_asignada:
+            # Pasar la planta asignada al contexto
+            return render(request, 'supervisor_dashboard.html', {
+                'show_welcome': True,
+                'planta_asignada': planta_asignada
+            })
+        else:
+            # Si no tiene planta asignada, redirigir a una página de error o mostrar mensaje
+            return render(request, 'supervisor_dashboard.html', {
+                'show_welcome': True,
+                'error': "No tienes una planta asignada."
+            })
+
     else:
         # En caso de un rol no permitido, redirigir al inicio o logout
         return redirect('logout')
-

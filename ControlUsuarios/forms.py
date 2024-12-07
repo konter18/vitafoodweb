@@ -29,9 +29,15 @@ class CustomUserSupervisorView(forms.ModelForm):
         model = CustomUser
         fields = ['rut', 'first_name', 'last_name', 'planta_fk']
 
-    rut = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    first_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    last_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    rut = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese el RUT'})
+    )
+    first_name = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese el nombre'})
+    )
+    last_name = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese el apellido'})
+    )
     planta_fk = forms.ModelChoiceField(
         queryset=PlantaModel.objects.all(),
         empty_label="Seleccione una planta",
@@ -40,7 +46,7 @@ class CustomUserSupervisorView(forms.ModelForm):
         label="Ubicación de Planta"
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese la contraseña'}),
         required=False,
         label="Contraseña"
     )

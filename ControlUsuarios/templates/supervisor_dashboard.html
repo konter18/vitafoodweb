@@ -27,6 +27,9 @@
           <a class="nav-link navbar-brand" href="{% url 'operator_list' %}">Editar Usuarios</a>
         </li>
         <li class="nav-item grosordeletra">
+          <a class="nav-link navbar-brand" href="{% url 'informes_supervisor' %}">Informes</a>
+        </li>
+        <li class="nav-item grosordeletra">
             <form method="POST" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="nav-link btn btn-link navbar-brand" style="background:none;">
@@ -63,10 +66,10 @@
 <!-- Contenedor de contenido con margen -->
 <div class="container mt-4">
   {% if show_welcome %}
-    <h1 class="ms-5">Bienvenido, {{ user.first_name }}!</h1>
+    <h1 class="ms-5">Bienvenido nuevamente, {{ user.first_name }}!</h1>
     <br>
-    <p>Información general de las detecciones del modelo</p>
-    <h1>Plantillas: {{ plantas }}</h1>
+    <p>Información general de las detecciones del modelo de inteligencia artificial de la planta asignada al usuario que inicio sesión</p>
+    <h2>Gráficos de: {{ planta_asignada }}</h1>
 
   {% endif %}
   {% block content %}
@@ -130,6 +133,11 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // Verificar si estamos en la vista 'informes_supervisor.html'
+    if (window.location.pathname.includes('informes_supervisor')) {
+      return;  // Si estamos en la vista de informes_supervisor, no ejecutamos el resto del código
+    }
+
     const generateButton = document.getElementById('generate-chart');
 
     // Obtener la fecha actual
@@ -300,6 +308,7 @@
     });
   });
 </script>
+
 
 </body>
 </html>
