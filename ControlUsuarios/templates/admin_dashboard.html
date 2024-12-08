@@ -48,9 +48,24 @@
 
 <div class="container mt-4">
   {% if show_welcome %}
-  <h1 class="ms-5">Bienvenido, {{ user.first_name }}!</h1>
+  <h1 class="ms-1">Bienvenido nuevamente, {{ user.first_name }}!</h1>
   <br>
-  <p>Información general de las detecciones del modelo</p>
+  <div>
+    <h1 class="ms-5">Sobre Nosotros</h1> <!-- Aquí he agregado ms-3 -->
+    <p class="fs-5">Vitafoods SpA es una compañía de origen chileno, fundada en Agosto de 2020, que nace de la asociación de dos reconocidas compañías: Alifrut, líder en alimentos congelados, y Hortifrut, productor y comercializador líder de berries en todo el mundo.
+
+      Ambos socios fundadores poseen más de 30 años de experiencia y conocimiento del mercado de los alimentos.
+      
+      Nuestro equipo profesional es heredero de esta vasta experiencia, cultura y valores. Al combinar recursos, habilidades y conocimientos, somos mejores agricultores, procesadores y proveedores tanto de nuestras propias variedades de berries patentados como de otras frutas, desarrollando nuevos e innovadores productos con que llegar al consumidor final. Vitafoods es una organización en red integrada verticalmente, con el control total en la calidad de sus productos en armonía con el medio ambiente y la comunidad.</p>
+  </div>
+  <div>
+    <h1 class="ms-5">Misión</h1> <!-- Aquí también he agregado ms-3 -->
+    <p class="fs-5">Ofrecer al mundo alimentos vitales, deliciosos, saludables, nutritivos, naturales y seguros, siendo respetuosos con el medioambiente y nuestra comunidad.</p>
+  </div>
+  <div>
+    <h1 class="ms-5">Visión</h1> <!-- Aquí también he agregado ms-3 -->
+    <p class="fs-5">Liderar globalmente la categoría de berries y frutas congeladas con soluciones alimenticias innovadoras.</p>
+  </div>
   {% endif %}
 </div>
 {% block content %}
