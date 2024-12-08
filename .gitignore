@@ -1,0 +1,12 @@
+ # Archivos de entorno
+.venv
+
+# Archivos compilados
+*.pyc
+*.pyo
+__pycache__/
+
+# Archivos de logs
+*.log
+
+
