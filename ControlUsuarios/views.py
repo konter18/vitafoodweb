@@ -364,9 +364,8 @@ def generar_pdf(request):
 
     # Crear el contenido del informe
     informe_texto = (
-        f"Informe de Rendimiento de Detección de {nombre_mes} del {anio}\n\n"
+        f"Informe de resumen del rendimiento de Detección de {nombre_mes} del {anio}\n\n"
         f"Planta: {planta_nombre}\n\n"  
-        f"Resumen del rendimiento de detección de la planta durante el mes de {nombre_mes} del año {anio}:\n\n"
         f"Durante el mes de {nombre_mes} de {anio}, la planta {planta_nombre} procesó un total de {cantidad_total} envases. "
         f"De este total, {cantidad_perdida} envases fueron identificados como errores. Esto nos proporciona un "
         f"porcentaje de acierto de {round(porcentaje_correcta, 2)}%, lo que refleja la eficiencia del sistema de "
@@ -424,11 +423,11 @@ def generar_pdf(request):
             y_position = margin_top  # Reiniciar la posición Y
 
     # Aquí añadimos espacio para el gráfico de barras en la primera página
-    y_position -= 210  # Espacio extra para evitar que se solapen los gráficos con el texto
+    y_position -= 300  # Espacio extra para evitar que se solapen los gráficos con el texto
 
     # **Generar Gráfico de Barras**
     buffer_barras = crear_grafico_barras(errores_por_tipo)
-    c.drawImage(ImageReader(buffer_barras), 50, y_position, width=500, height=230)
+    c.drawImage(ImageReader(buffer_barras), 50, y_position, width=500, height=260)
 
 
     # **Nueva página para gráficos 2 y 3 (pastel y evolución)**
@@ -441,10 +440,10 @@ def generar_pdf(request):
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, margen_superior_segunda_hoja, "Gráfico de Proporción de Errores")
     buffer_pastel = crear_grafico_pastel(errores_por_tipo)
-    y_position_pastel = margen_superior_segunda_hoja - 320  # Ajuste de la posición para el gráfico de pastel
+    y_position_pastel = margen_superior_segunda_hoja - 342  # Ajuste de la posición para el gráfico de pastel
     # Calcular la posición centrada para el gráfico de pastel
     x_position_pastel = (595 - 400) / 2  # Centrado en la página
-    c.drawImage(ImageReader(buffer_pastel), x_position_pastel, y_position_pastel, width=400, height=300)
+    c.drawImage(ImageReader(buffer_pastel), x_position_pastel, y_position_pastel, width=400, height=340)
 
     # **Gráfico de Evolución**
     # Calcular la posición para el gráfico de evolución, dejando un margen adicional
@@ -644,28 +643,28 @@ def generar_pdf_supervisor(request):
             y_position = margin_top  # Reiniciar la posición Y
 
     # Aquí añadimos espacio para el gráfico de barras en la primera página
-    y_position -= 210  # Espacio extra para evitar que se solapen los gráficos con el texto
+    y_position -= 300  # Espacio extra para evitar que se solapen los gráficos con el texto
 
     # Filtrar errores por planta del usuario
     errores_por_tipo_planta = registros_errores.filter(planta_fk=planta_asignada).values('tipo_error').annotate(cantidad_error=Count('id_error'))
     # **Generar Gráfico de Barras**
     buffer_barras_planta = crear_grafico_barras_planta(errores_por_tipo_planta)
-    c.drawImage(ImageReader(buffer_barras_planta), 50, y_position, width=500, height=230)
+    c.drawImage(ImageReader(buffer_barras_planta), 50, y_position, width=500, height=260)
 
     # **Nueva página para gráficos 2 y 3 (pastel y evolución)**
     c.showPage()
 
     # Configurar un margen superior para la segunda página
-    margen_superior_segunda_hoja = 710  # Ajusta el espacio en la parte superior
+    margen_superior_segunda_hoja = 740  # Ajusta el espacio en la parte superior
 
     # **Gráfico de Pastel**
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, margen_superior_segunda_hoja, "Gráfico de Proporción de Errores")
     buffer_pastel_planta = crear_grafico_pastel_planta(errores_por_tipo_planta)
-    y_position_pastel = margen_superior_segunda_hoja - 320  # Ajuste de la posición para el gráfico de pastel
+    y_position_pastel = margen_superior_segunda_hoja - 370  # Ajuste de la posición para el gráfico de pastel
     # Calcular la posición centrada para el gráfico de pastel
     x_position_pastel = (595 - 400) / 2  # Centrado en la página
-    c.drawImage(ImageReader(buffer_pastel_planta), x_position_pastel, y_position_pastel, width=400, height=300)
+    c.drawImage(ImageReader(buffer_pastel_planta), x_position_pastel, y_position_pastel, width=400, height=350)
 
     # **Gráfico de Evolución**
     # Calcular la posición para el gráfico de evolución, dejando un margen adicional
