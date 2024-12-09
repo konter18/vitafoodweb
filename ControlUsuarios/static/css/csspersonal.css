@@ -113,16 +113,6 @@ thead, td {
     --bs-alert-link-color: var(--bs-info-text-emphasis);
     border: 1px #4a3a47;
 }
-.modal-content{
-    background: #ffe7bf;
-}
-.modal-header{
-    background: #ffe7bf;
-}
-.modal{
-    --bs-modal-header-border-color: #4a3a47;
-    --bs-modal-footer-border-color: #ffe7bf;
-}
 .fondocafe{
     background-color: #4a3a47;
 }

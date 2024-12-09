@@ -102,12 +102,16 @@
                         }, 1000);
                     } else {
                         // Muestra los errores en caso de fallo
-                        responseMessage.innerHTML = `<div class="alert alert-danger">Error: ${data.errors}</div>`;
+                        responseMessage.innerHTML = `<div class="alert alert-info">Error: ${data.errors}</div>`;
                     }
                 })
                 .catch(error => console.error('Error:', error));
             });
         }
+    });
+    document.addEventListener("DOMContentLoaded", () => {
+        const modal = document.getElementById("changePasswordModal");
+        document.body.appendChild(modal);
     });
     </script>
 {% endblock %}

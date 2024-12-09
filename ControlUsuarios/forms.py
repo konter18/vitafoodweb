@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm,PasswordChangeForm,Admi
 from django.contrib.auth.models import User
 from .models import CustomUser,PlantaModel
 from django.core.exceptions import ValidationError
+import re
 
 class CustomAuthenticationForm(forms.Form):
     rut = forms.CharField(max_length=12, label="RUT", widget=forms.TextInput(attrs={'autofocus': 'autofocus'}))
@@ -60,6 +61,22 @@ class CustomUserSupervisorView(forms.ModelForm):
             # Si es un nuevo usuario, el campo contraseña debe ser obligatorio
             self.fields['password'].required = True
 
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+
+        # Validaciones personalizadas
+        if password:
+            if len(password) < 8:
+                raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
+            if not any(char.isupper() for char in password):
+                raise ValidationError("La contraseña debe tener al menos una letra mayúscula.")
+            if not any(char.isdigit() for char in password):
+                raise ValidationError("La contraseña debe contener al menos un dígito.")
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                raise ValidationError("La contraseña debe contener al menos un símbolo especial (!@#$%^&*(), etc.).")
+
+        return password
+
     def save(self, commit=True):
         user = super().save(commit=False)
         if not self.instance.pk:
@@ -89,14 +106,27 @@ class AdminPasswordChangeForm(forms.Form):
         password1 = cleaned_data.get('new_password1')
         password2 = cleaned_data.get('new_password2')
 
+        # Validación: Verificar si las contraseñas coinciden
         if password1 and password2 and password1 != password2:
             raise ValidationError("Las contraseñas no coinciden.")
 
-        if len(password1) < 8:
-            raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
-
-        if password1.isdigit():
-            raise ValidationError("La contraseña no puede ser completamente numérica.")
+        # Validar la contraseña usando una función específica
+        self.validate_password(password1)
 
         return cleaned_data
+
+    def validate_password(self, password):
+        """
+        Valida si la contraseña cumple con los requisitos.
+        """
+        if not password:
+            raise ValidationError("Debe proporcionar una contraseña.")
+        if len(password) < 8:
+            raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
+        if not any(char.isupper() for char in password):
+            raise ValidationError("La contraseña debe tener al menos una letra mayúscula.")
+        if not any(char.isdigit() for char in password):
+            raise ValidationError("La contraseña debe contener al menos un dígito.")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            raise ValidationError("La contraseña debe contener al menos un símbolo especial (!@#$%^&*(), etc.).")
     

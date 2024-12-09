@@ -1,8 +1,8 @@
 {% extends 'admin_dashboard.html' %}
 
 {% block plantas_dashboard_content %}
-        <!-- Aquí va tu contenido con los filtros y gráficos -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <!-- Aquí va tu contenido con los filtros y gráficos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <!-- Contenedor de contenido con margen -->
     <div class="container mt-4">
         <!-- Filtros del gráfico -->
@@ -60,11 +60,11 @@
     
         <!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
         <div id="pie-chart-container" class="mt-4" style="width: 100%; height: 700px;"></div>
-    
+        <button id="scrollToTop" class="btn btn-primary position-fixed">
+          Subir
+        </button>
     </div>
-    <button id="scrollToTop" class="btn btn-primary position-fixed" style="bottom: 20px; right: 20px; display: none;">
-        Subir
-    </button>
+ 
 {% block scripts %}
   <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -194,6 +194,7 @@
       behavior: 'smooth' // Animación suave al hacer scroll
     });
   });
+
   </script>
   {% endblock %}
 {% endblock %}

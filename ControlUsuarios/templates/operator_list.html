@@ -102,5 +102,9 @@
         var form = document.getElementById('deleteForm');
         form.action = "{% url 'eliminar_usuario' 0 %}".slice(0, -1) + operatorId;  // Actualizar la acción del formulario
     });
+    document.addEventListener("DOMContentLoaded", () => {
+        const modal = document.getElementById("deleteModal");
+        document.body.appendChild(modal);
+    });
 </script>
 {% endblock %}

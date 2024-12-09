@@ -41,26 +41,49 @@ def change_password(request, user_id):
     if request.method == 'POST':
         new_password1 = request.POST.get('new_password1')
         new_password2 = request.POST.get('new_password2')
-        
-        # Verificar que las contraseñas coincidan
-        if new_password1 == new_password2:
-            try:
-                user = CustomUser.objects.get(id=user_id)
-                user.password = make_password(new_password1)  # Cifrar la nueva contraseña
-                user.save()
 
-                # Responder con éxito y enviar la URL correcta
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Contraseña cambiada exitosamente',
-                    'redirect_url': '/operator_list'  # Asegúrate de que esta URL sea la correcta
-                })
-            except CustomUser.DoesNotExist:
-                return JsonResponse({'success': False, 'errors': 'Usuario no encontrado'})
-        else:
+        # Verificar que las contraseñas coincidan
+        if new_password1 != new_password2:
             return JsonResponse({'success': False, 'errors': 'Las contraseñas no coinciden'})
 
+        # Validar la nueva contraseña
+        try:
+            validate_password(new_password1)  # Llama a la función de validación
+        except ValidationError as e:
+            # Devuelve los mensajes de error de validación
+            return JsonResponse({'success': False, 'errors': e.messages})
+
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            user.password = make_password(new_password1)  # Cifrar la nueva contraseña
+            user.save()
+
+            # Responder con éxito y enviar la URL correcta
+            return JsonResponse({
+                'success': True,
+                'message': 'Contraseña cambiada exitosamente',
+                'redirect_url': '/operator_list'  # Asegúrate de que esta URL sea la correcta
+            })
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'success': False, 'errors': 'Usuario no encontrado'})
+
     return JsonResponse({'success': False, 'errors': 'Método no permitido'})
+
+def validate_password(password):
+    """
+    Valida si la contraseña cumple con los requisitos.
+    """
+    if not password:
+        raise ValidationError("Debe proporcionar una contraseña.")
+    if len(password) < 8:
+        raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
+    if not any(char.isupper() for char in password):
+        raise ValidationError("La contraseña debe tener al menos una letra mayúscula.")
+    if not any(char.isdigit() for char in password):
+        raise ValidationError("La contraseña debe contener al menos un dígito.")
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        raise ValidationError("La contraseña debe contener al menos un símbolo especial (!@#$%^&*(), etc.).")
+    
 # Función de prueba para verificar si el usuario es un supervisor
 def is_supervisor(user):
     print(f"Verificando si {user.username} es supervisor...")
