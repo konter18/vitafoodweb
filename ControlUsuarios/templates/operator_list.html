@@ -1,94 +1,97 @@
 {% extends 'supervisor_dashboard.html' %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Lista de Operadores</h2>
-
-    <!-- Formulario de búsqueda -->
-    <form method="get" class="mb-4">
-        <div class="input-group">
-            <input type="text" name="rut" value="{{ rut_filter }}" class="form-control" placeholder="Filtrar por RUT">
-            <button class="btn btn-primary" type="submit">Buscar</button>
+<div class="main-content2">
+    <div class="container mt-4">
+        <h2 class="mb-4">Lista de Operadores</h2>
+    
+        <!-- Formulario de búsqueda -->
+        <form method="get" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="rut" value="{{ rut_filter }}" class="form-control" placeholder="Filtrar por RUT">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+        </form>
+    
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>RUT</th>
+                        <th>Nombre</th>
+                        <th>Planta</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for operador in page_obj %}
+                    <tr>
+                        <td>{{ operador.rut }}</td>
+                        <td>{{ operador.first_name }} {{ operador.last_name }}</td>
+                        <td>{{ operador.planta_fk.nombre_planta }}</td>
+                        <td>
+                            <!-- Botón para redirigir a la página de edición del operador -->
+                            <a href="{% url 'editar_usuario' operador.id %}" class="btn btn-primary">Editar</a>
+                            
+                            <!-- Botón para mostrar el modal de confirmación -->
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#deleteModal" data-operator-id="{{ operador.id }}">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">No se encontraron operadores.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </form>
-
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>RUT</th>
-                    <th>Nombre</th>
-                    <th>Planta</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for operador in page_obj %}
-                <tr>
-                    <td>{{ operador.rut }}</td>
-                    <td>{{ operador.first_name }} {{ operador.last_name }}</td>
-                    <td>{{ operador.planta_fk.nombre_planta }}</td>
-                    <td>
-                        <!-- Botón para redirigir a la página de edición del operador -->
-                        <a href="{% url 'editar_usuario' operador.id %}" class="btn btn-primary">Editar</a>
-                        
-                        <!-- Botón para mostrar el modal de confirmación -->
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#deleteModal" data-operator-id="{{ operador.id }}">
-                            Eliminar
-                        </button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4">No se encontraron operadores.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Paginación -->
-    <div class="pagination">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-                <a href="?page=1&rut={{ rut_filter }}">Primera</a>
-                <a href="?page={{ page_obj.previous_page_number }}&rut={{ rut_filter }}">Anterior</a>
-            {% endif %}
-
-            <span class="current">
-                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+    
+        <!-- Paginación -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1&rut={{ rut_filter }}">Primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}&rut={{ rut_filter }}">Anterior</a>
+                {% endif %}
+    
+                <span class="current">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+                </span>
+    
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&rut={{ rut_filter }}">Siguiente</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}&rut={{ rut_filter }}">Última</a>
+                {% endif %}
             </span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&rut={{ rut_filter }}">Siguiente</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}&rut={{ rut_filter }}">Última</a>
-            {% endif %}
-        </span>
+        </div>
     </div>
-</div>
-
-<!-- Modal de Confirmación -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"> <!-- Agregar modal-dialog-centered -->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                ¿Estás seguro de que deseas eliminar este operador?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancelar</button>
-                <!-- Formulario de eliminación -->
-                <form id="deleteForm" method="post" action="" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Confirmar</button>
-                </form>
+    
+    <!-- Modal de Confirmación -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"> <!-- Agregar modal-dialog-centered -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar este operador?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancelar</button>
+                    <!-- Formulario de eliminación -->
+                    <form id="deleteForm" method="post" action="" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Confirmar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- Script para actualizar el formulario de eliminación -->
 <script>

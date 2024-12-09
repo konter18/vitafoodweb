@@ -9,69 +9,75 @@
     <link rel="stylesheet" href="{% static 'css/csspersonal.css' %}?v=1.1">
 </head>
 <body class="d-flex flex-column vh-100">
-
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg bg-pri">
-  <div class="container-fluid ms-5">
-    <a class="navbar-brand grosordeletra" href="{% url 'admin_dashboard' %}">Inicio</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav">
-        <li class="nav-item grosordeletra">
-          <a class="nav-link navbar-brand" href="{% url 'plantas_dashboard' %}">Plantas</a>
-        </li>
-        <li class="nav-item grosordeletra">
-          <a class="nav-link navbar-brand" href="{% url 'informes_admin' %}">Informes</a>
-        </li>
-        <li class="nav-item">
-            <form method="POST" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="nav-link btn btn-link navbar-brand grosordeletra" style="background:none;">
-                  Cerrar sesión
-                </button>
-              </form>
-        </li>
-      </ul>
+    <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg bg-pri">
+    <div class="container-fluid ms-5">
+      <a class="navbar-brand grosordeletra" href="{% url 'admin_dashboard' %}">Inicio</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item grosordeletra">
+            <a class="nav-link navbar-brand" href="{% url 'plantas_dashboard' %}">Plantas</a>
+          </li>
+          <li class="nav-item grosordeletra">
+            <a class="nav-link navbar-brand" href="{% url 'informes_admin' %}">Informes</a>
+          </li>
+          <li class="nav-item">
+              <form method="POST" action="{% url 'logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-link btn btn-link navbar-brand grosordeletra" style="background:none;">
+                    Cerrar sesión
+                  </button>
+                </form>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-{% if messages %}
+
+  <div class="main-content">
+    <img src="/static/img/logoi.png" alt="Descripción de la imagen" id="top-right-image" />
+    {% if messages %}
     <div class="alert alert-info">
         {% for message in messages %}
             <p>{{ message }}</p>
         {% endfor %}
     </div>
-{% endif %}
+    {% endif %}
 
-<div class="container mt-4">
-  {% if show_welcome %}
-  <h1 class="ms-1">Bienvenido nuevamente, {{ user.first_name }}!</h1>
-  <br>
-  <div>
-    <h1 class="ms-5">Sobre Nosotros</h1> <!-- Aquí he agregado ms-3 -->
-    <p class="fs-5">Vitafoods SpA es una compañía de origen chileno, fundada en Agosto de 2020, que nace de la asociación de dos reconocidas compañías: Alifrut, líder en alimentos congelados, y Hortifrut, productor y comercializador líder de berries en todo el mundo.
+    <div class="container mt-4">
+      {% if show_welcome %}
+      <h1 class="ms-1">Bienvenido nuevamente, {{ user.first_name }}!</h1>
+      <br>
+      <div>
+        <h1 class="ms-5">Sobre Nosotros</h1> <!-- Aquí he agregado ms-3 -->
+        <p class="fs-5">Vitafoods SpA es una compañía de origen chileno, fundada en Agosto de 2020, que nace de la asociación de dos reconocidas compañías: Alifrut, líder en alimentos congelados, y Hortifrut, productor y comercializador líder de berries en todo el mundo.
 
-      Ambos socios fundadores poseen más de 30 años de experiencia y conocimiento del mercado de los alimentos.
-      
-      Nuestro equipo profesional es heredero de esta vasta experiencia, cultura y valores. Al combinar recursos, habilidades y conocimientos, somos mejores agricultores, procesadores y proveedores tanto de nuestras propias variedades de berries patentados como de otras frutas, desarrollando nuevos e innovadores productos con que llegar al consumidor final. Vitafoods es una organización en red integrada verticalmente, con el control total en la calidad de sus productos en armonía con el medio ambiente y la comunidad.</p>
+          Ambos socios fundadores poseen más de 30 años de experiencia y conocimiento del mercado de los alimentos.
+          
+          Nuestro equipo profesional es heredero de esta vasta experiencia, cultura y valores. Al combinar recursos, habilidades y conocimientos, somos mejores agricultores, procesadores y proveedores tanto de nuestras propias variedades de berries patentados como de otras frutas, desarrollando nuevos e innovadores productos con que llegar al consumidor final. Vitafoods es una organización en red integrada verticalmente, con el control total en la calidad de sus productos en armonía con el medio ambiente y la comunidad.</p>
+      </div>
+      <div>
+        <h1 class="ms-5">Misión</h1> <!-- Aquí también he agregado ms-3 -->
+        <p class="fs-5">Ofrecer al mundo alimentos vitales, deliciosos, saludables, nutritivos, naturales y seguros, siendo respetuosos con el medioambiente y nuestra comunidad.</p>
+      </div>
+      <div>
+        <h1 class="ms-5">Visión</h1> <!-- Aquí también he agregado ms-3 -->
+        <p class="fs-5">Liderar globalmente la categoría de berries y frutas congeladas con soluciones alimenticias innovadoras.</p>
+      </div>
+      {% endif %}
+    </div>
+    {% block content %}
+        <!-- Otros contenidos del dashboard -->
+        {% block plantas_dashboard_content %}{% endblock %}
+    {% endblock %}
   </div>
-  <div>
-    <h1 class="ms-5">Misión</h1> <!-- Aquí también he agregado ms-3 -->
-    <p class="fs-5">Ofrecer al mundo alimentos vitales, deliciosos, saludables, nutritivos, naturales y seguros, siendo respetuosos con el medioambiente y nuestra comunidad.</p>
-  </div>
-  <div>
-    <h1 class="ms-5">Visión</h1> <!-- Aquí también he agregado ms-3 -->
-    <p class="fs-5">Liderar globalmente la categoría de berries y frutas congeladas con soluciones alimenticias innovadoras.</p>
-  </div>
-  {% endif %}
-</div>
-{% block content %}
-    <!-- Otros contenidos del dashboard -->
-    {% block plantas_dashboard_content %}{% endblock %}
-{% endblock %}
+
+
+
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 

@@ -10,124 +10,127 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
 </head>
 <body class="d-flex flex-column vh-100">
-
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg bg-pri">
-  <div class="container-fluid ms-5">
-    <a class="navbar-brand grosordeletra" href="{% url 'supervisor_dashboard' %}">Inicio</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav">
-        <li class="nav-item grosordeletra">
-          <a class="nav-link navbar-brand" href="{% url 'crear_usuario' %}">Crear Usuarios</a>
-        </li>
-        <li class="nav-item grosordeletra">
-          <a class="nav-link navbar-brand" href="{% url 'operator_list' %}">Editar Usuarios</a>
-        </li>
-        <li class="nav-item grosordeletra">
-          <a class="nav-link navbar-brand" href="{% url 'informes_supervisor' %}">Informes</a>
-        </li>
-        <li class="nav-item grosordeletra">
-            <form method="POST" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="nav-link btn btn-link navbar-brand" style="background:none;">
-                  Cerrar sesión
-                </button>
-              </form>
-        </li>
-      </ul>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg bg-pri">
+    <div class="container-fluid ms-5">
+      <a class="navbar-brand grosordeletra" href="{% url 'supervisor_dashboard' %}">Inicio</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item grosordeletra">
+            <a class="nav-link navbar-brand" href="{% url 'crear_usuario' %}">Crear Usuarios</a>
+          </li>
+          <li class="nav-item grosordeletra">
+            <a class="nav-link navbar-brand" href="{% url 'operator_list' %}">Editar Usuarios</a>
+          </li>
+          <li class="nav-item grosordeletra">
+            <a class="nav-link navbar-brand" href="{% url 'informes_supervisor' %}">Informes</a>
+          </li>
+          <li class="nav-item grosordeletra">
+              <form method="POST" action="{% url 'logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-link btn btn-link navbar-brand" style="background:none;">
+                    Cerrar sesión
+                  </button>
+                </form>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-{% if messages %}
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    </div>
+<div class="main-content">
+  <img src="/static/img/logoi.png" alt="Descripción de la imagen" id="top-right-image" />
+  {% if messages %}
+      <div class="alert alert-info alert-dismissible fade show" role="alert">
+          {% for message in messages %}
+              <p>{{ message }}</p>
+          {% endfor %}
+      </div>
 
-    <script>
-        setTimeout(function() {
-            let alert = document.querySelector('.alert');
-            if (alert) {
-                alert.classList.remove('show');
-                alert.classList.add('fade');
-                setTimeout(() => {
-                    alert.remove();
-                }, 300); // Tiempo para la animación de desvanecimiento
-            }
-        }, 3000); // Cierra la alerta después de 3 segundos
-    </script>
-{% endif %}
-
-<!-- Contenedor de contenido con margen -->
-<div class="container mt-4">
-  {% if show_welcome %}
-    <h1 class="ms-5">Bienvenido nuevamente, {{ user.first_name }}!</h1>
-    <br>
-    <p>Información general de las detecciones del modelo de inteligencia artificial de la planta asignada al usuario que inicio sesión</p>
-    <h2>Gráficos de: {{ planta_asignada }}</h1>
-
+      <script>
+          setTimeout(function() {
+              let alert = document.querySelector('.alert');
+              if (alert) {
+                  alert.classList.remove('show');
+                  alert.classList.add('fade');
+                  setTimeout(() => {
+                      alert.remove();
+                  }, 300); // Tiempo para la animación de desvanecimiento
+              }
+          }, 3000); // Cierra la alerta después de 3 segundos
+      </script>
   {% endif %}
-  {% block content %}
-<!-- Filtros del gráfico -->
-<form id="filter-form" class="container mt-4">
-  <div class="row">
-    <!-- Filtro para el mes -->
-    <div class="col-md-4 col-sm-12 mb-3">
-      <label for="mes" class="form-label small">Mes:</label>
-      <select id="mes" name="mes" class="form-select">
-        <option value="01">Enero</option>
-        <option value="02">Febrero</option>
-        <option value="03">Marzo</option>
-        <option value="04">Abril</option>
-        <option value="05">Mayo</option>
-        <option value="06">Junio</option>
-        <option value="07">Julio</option>
-        <option value="08">Agosto</option>
-        <option value="09">Septiembre</option>
-        <option value="10">Octubre</option>
-        <option value="11">Noviembre</option>
-        <option value="12">Diciembre</option>
-      </select>
-    </div>
 
-    <!-- Filtro para el año -->
-    <div class="col-md-4 col-sm-12 mb-3">
-      <label for="anio" class="form-label small">Año:</label>
-      <select id="anio" name="anio" class="form-select">
-        <option value="2024">2024</option>
-        <!-- Agrega más años si es necesario -->
-      </select>
-    </div>
+  <!-- Contenedor de contenido con margen -->
+  <div class="container mt-4">
+    {% if show_welcome %}
+      <h1 class="ms-5">Bienvenido nuevamente, {{ user.first_name }}!</h1>
+      <br>
+      <p>Información general de las detecciones del modelo de inteligencia artificial de la planta asignada al usuario que inicio sesión</p>
+      <h2>Gráficos de: {{ planta_asignada }}</h1>
 
-    <!-- Botón para generar gráfico -->
-    <div class="col-md-4 col-sm-12 mb-3 d-flex mt-4">
-      <button type="button" id="generate-chart" class="btn btn-primary">Generar gráfico</button>
-      <!-- Botón para navegar al gráfico de rendimiento -->
-      <a href="#pie-chart-container" class="btn btn-primary ms-2">Ir al gráfico de rendimiento</a>
+    {% endif %}
+    {% block content %}
+  <!-- Filtros del gráfico -->
+  <form id="filter-form" class="container mt-4">
+    <div class="row">
+      <!-- Filtro para el mes -->
+      <div class="col-md-4 col-sm-12 mb-3">
+        <label for="mes" class="form-label small">Mes:</label>
+        <select id="mes" name="mes" class="form-select">
+          <option value="01">Enero</option>
+          <option value="02">Febrero</option>
+          <option value="03">Marzo</option>
+          <option value="04">Abril</option>
+          <option value="05">Mayo</option>
+          <option value="06">Junio</option>
+          <option value="07">Julio</option>
+          <option value="08">Agosto</option>
+          <option value="09">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+
+      <!-- Filtro para el año -->
+      <div class="col-md-4 col-sm-12 mb-3">
+        <label for="anio" class="form-label small">Año:</label>
+        <select id="anio" name="anio" class="form-select">
+          <option value="2024">2024</option>
+          <!-- Agrega más años si es necesario -->
+        </select>
+      </div>
+
+      <!-- Botón para generar gráfico -->
+      <div class="col-md-4 col-sm-12 mb-3 d-flex mt-4">
+        <button type="button" id="generate-chart" class="btn btn-primary">Generar gráfico</button>
+        <!-- Botón para navegar al gráfico de rendimiento -->
+        <a href="#pie-chart-container" class="btn btn-primary ms-2">Ir al gráfico de rendimiento</a>
+      </div>
     </div>
+  </form>
+
+  <!-- Contenedor del gráfico de barra-->
+  <div id="chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
+
+  <!-- Contenedor del gráfico de torta-->
+  <div id="pie-chart" class="mt-4" style="width: 100%; height: 400px;"></div>
+
+  <!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
+  <div id="pie-chart-container" class="mt-4" style="width: 100%; height: 700px;"></div>
+
+    {% endblock %}
   </div>
-</form>
-
-<!-- Contenedor del gráfico de barra-->
-<div id="chart-container" class="mt-4" style="width: 100%; height: 400px;"></div>
-
-<!-- Contenedor del gráfico de torta-->
-<div id="pie-chart" class="mt-4" style="width: 100%; height: 400px;"></div>
-
-<!-- Contenedor del gráfico de torta de rendimiento del mes actual-->
-<div id="pie-chart-container" class="mt-4" style="width: 100%; height: 700px;"></div>
-
-  {% endblock %}
+  <!-- Botón para subir al principio de la página -->
+  <button id="scrollToTop" class="btn btn-primary position-fixed" style="bottom: 20px; right: 20px; display: none;">
+    Subir
+  </button>
 </div>
-<!-- Botón para subir al principio de la página -->
-<button id="scrollToTop" class="btn btn-primary position-fixed" style="bottom: 20px; right: 20px; display: none;">
-  Subir
-</button>
+
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 

@@ -1,9 +1,49 @@
 body {
-    background-color: rgb(255, 231, 191);
+    background: url('/static/img/arandano2.jpg') no-repeat center center fixed; /* Imagen de fondo */
+    background-size: cover; /* La imagen cubre todo el fondo */
+    position: relative; /* Para asegurar que los elementos hijos puedan posicionarse */
+    background-color: #ffe7bf; /* Color de fondo con el color deseado */
+    min-height: 100vh; /* Asegura que el body ocupe todo el alto de la pantalla */
+    display: flex;
+    flex-direction: column; /* Disponer los elementos de manera vertical */
+    height: 100vh; /* Asegura que el body ocupe toda la altura de la ventana */
+    margin: 0; /* Elimina los márgenes por defecto */
 }
 
+body::before {
+    content: ''; /* Pseudo-elemento vacío */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 231, 191, 0.6);
+    z-index: 0; /* Detrás del contenido */
+}
+
+/* Esto asegura que el contenido principal tenga un fondo blanco semi-translúcido para hacerlo legible */
+.main-content {
+    position: relative;
+    z-index: 1; /* Para que el contenido quede por encima del fondo */
+    background: rgba(255, 255, 255, 0.7); /* Fondo blanco semi-opaco para el contenido */
+    padding: 20px; /* Espaciado interno */
+    overflow-y: auto;
+    flex: 1;
+}
+.main-login {
+    position: relative;
+    z-index: 1; /* Para que el contenido quede por encima del fondo */
+    background: rgba(255, 255, 255, 0.7); /* Fondo blanco semi-opaco para el contenido */
+    padding: 20px; /* Espaciado interno */
+    overflow-y: auto;
+}
+.login{
+    width: 40%;
+    align-content: center;
+}
 .navbar {
     background-color: #4a3a47; /* Cambiar a un color oscuro para la navbar */
+    z-index: 1;
 }
 .btn-primary {
     --bs-btn-color: var(--bs-navbar-brand-color);
@@ -22,9 +62,6 @@ body {
     --bs-btn-disabled-border-color: #4a3a47;
     color: aliceblue;
   }
-.table{
-    --bs-table-bg: #ffe7bf;
-}
 .bg-primary{
     background-color: #4a3a47;
 }
@@ -101,4 +138,12 @@ thead, td {
 .chart{
     width: 100%;
     height: 700px;
+}
+#top-right-image {
+    position: fixed;
+    top: 7%;
+    right: 3%;
+    width: 216px;
+    height: 90px;
+    z-index: 9999;
 }
